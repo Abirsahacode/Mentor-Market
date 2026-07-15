@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 405" role="img" aria-labelledby="title desc">
+  <title id="title">Mathematics lesson thumbnail</title><desc id="desc">A jade lesson poster with equations and geometric shapes.</desc>
+  <rect width="720" height="405" fill="#10a37f"/>
+  <path d="M0 80h720M0 160h720M0 240h720M0 320h720M90 0v405M180 0v405M270 0v405M360 0v405M450 0v405M540 0v405M630 0v405" stroke="#6dcbb4" stroke-width="2"/>
+  <rect x="44" y="40" width="104" height="30" fill="#2b8fff"/><text x="57" y="61" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="white">DEMO 01</text>
+  <text x="44" y="170" font-family="Arial,sans-serif" font-size="62" font-weight="700" fill="white">Mathematics</text>
+  <text x="48" y="211" font-family="Arial,sans-serif" font-size="21" fill="#d7f3eb">SSC · Algebra · Problem solving</text>
+  <circle cx="586" cy="175" r="88" fill="#2b8fff"/><path d="M540 212l51-106 48 106z" fill="none" stroke="#0e0f12" stroke-width="9"/>
+  <text x="46" y="352" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#d9ebff">MENTOR MARKET / FARHAN AHMED</text>
+</svg>

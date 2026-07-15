@@ -1,0 +1,18 @@
+{
+  "name": "mentor-market",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack EdTech tutor marketplace",
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "db:start": "npm run db:local:start --prefix backend",
+    "db:stop": "npm run db:local:stop --prefix backend",
+    "db:reset": "npm run db:local:reset --prefix backend",
+    "dev": "npm run db:start && concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:external-db": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "test": "npm test --prefix backend && npm run build --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

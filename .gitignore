@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+.vscode/
+coverage/
+.vite-cache/
+backend/.mariadb-data/
+backend/.mariadb-run/
