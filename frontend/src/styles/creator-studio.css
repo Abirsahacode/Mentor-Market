@@ -28,5 +28,5 @@
 .request-brief-checklist svg { padding: 2px; border-radius: 50%; background: #30363a; }
 .request-brief-checklist span.done svg { background: #176f5a; }
 @media (max-width: 1050px) { .service-composer { grid-template-columns: 1fr; }.service-live-preview { position: static; max-width: 540px; } }
-@media (max-width: 1050px) { .request-brief-preview { position: static; max-width: 540px; min-height: 440px; } }
+@media (max-width: 1050px) { .request-brief-preview { position: relative; top: auto; max-width: 540px; min-height: 440px; } }
 @media (max-width: 620px) { .service-live-preview { padding: 14px; border-radius: 18px; }.creator-preview-media { height: 190px; }.creator-quality-list, .request-brief-checklist { grid-template-columns: 1fr; }.request-brief-preview { min-height: 0; padding: 24px; border-radius: 20px; } }

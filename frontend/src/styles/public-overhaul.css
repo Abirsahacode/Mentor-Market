@@ -571,7 +571,8 @@
   .public-shell .mobile-filter-button b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 50%; background: var(--pub-jade); color: #fff; font-size: .62rem; }
   .public-shell .filter-scrim { position: fixed; z-index: 94; inset: 0; display: block; border: 0; background: rgba(14, 15, 18, .48); }
   .public-shell .filter-sidebar { position: fixed; z-index: 95; top: 0; right: 0; bottom: 0; display: block; visibility: hidden; width: min(370px, 92vw); padding: 25px; overflow-y: auto; border: 0; border-radius: 20px 0 0 20px; box-shadow: -20px 0 55px rgba(14, 15, 18, .2); pointer-events: none; transform: translateX(105%); transition: visibility .25s ease, transform .25s ease; }
-  .public-shell .filter-sidebar.is-open { visibility: visible; pointer-events: auto; transform: translateX(0); }
+  .public-shell .filter-sidebar:not(.is-open) { display: none; }
+  .public-shell .filter-sidebar.is-open { display: block; visibility: visible; pointer-events: auto; transform: translateX(0); }
   .public-shell .filter-mobile-close { display: grid; width: 34px; height: 34px; padding: 0; place-items: center; border: 1px solid var(--pub-line); border-radius: 9px; background: #fff; color: var(--pub-ink); }
   .public-shell .profile-cinema { grid-template-columns: 1fr; }
   .public-shell .profile-cinema-media { min-height: 460px; }
@@ -587,6 +588,8 @@
 }
 
 @media (max-width: 900px) {
+  .public-shell .information-layout { grid-template-columns: 1fr; gap: 38px; }
+  .public-shell .information-layout > aside { position: static; }
   .auth-premium { display: block; }
   .auth-premium .auth-story { position: relative; height: 320px; min-height: 0; padding: 22px 28px; }
   .auth-premium .auth-story-content { margin-top: auto; padding: 25px 0 0; }
@@ -620,8 +623,6 @@
   .public-shell .directory-feature-note { position: static; margin: 10px 0 0; }
   .public-shell .opportunities-toolbar { align-items: stretch; flex-direction: column; gap: 20px; }
   .public-shell .opportunities-toolbar label { width: 100%; }
-  .public-shell .information-layout { grid-template-columns: 1fr; gap: 38px; }
-  .public-shell .information-layout > aside { position: static; }
   .public-shell .information-principle { grid-template-columns: 36px 1fr; }.public-shell .information-principle p { grid-column: 2; }
   .public-shell .information-cta { grid-template-columns: 1fr; align-items: start; }
   .public-shell .footer-grid { grid-template-columns: repeat(3, 1fr); }
