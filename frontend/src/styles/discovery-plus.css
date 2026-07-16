@@ -227,7 +227,7 @@
 .learning-pulse > button:hover { border-color: #b8cfc8; background: #fff; transform: translateY(-2px); }
 .learning-pulse > .learning-pulse-continue { display: grid; min-height: 74px; padding: 9px 13px 9px 9px; grid-template-columns: 54px minmax(0, 1fr) 18px; align-items: center; gap: 11px; border: 1px solid #234b42; border-radius: 14px; background: #153a32; color: #fff; box-shadow: 0 8px 24px rgba(14, 47, 39, .12); }
 .learning-pulse > .learning-pulse-continue:hover { border-color: #2b6959; background: #19463b; }
-.learning-pulse > .learning-pulse-continue > .learning-pulse-thumb { display: grid; width: 54px; height: 48px; overflow: hidden; place-items: center; border-radius: 10px; background: rgba(255, 255, 255, .1); color: #8fe1c8; }
+.learning-pulse > .learning-pulse-continue > .learning-pulse-thumb { position: relative; display: grid; width: 54px; height: 48px; overflow: hidden; isolation: isolate; place-items: center; border-radius: 10px; background: rgba(255, 255, 255, .1); color: #8fe1c8; }
 .learning-pulse-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .learning-pulse-continue > div { display: flex; min-width: 0; flex-direction: column; }
 .learning-pulse-continue small { color: #8fe1c8; }
