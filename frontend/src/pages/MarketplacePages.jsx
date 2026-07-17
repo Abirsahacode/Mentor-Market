@@ -1,6 +1,6 @@
 import { BookMarked, CalendarDays, FileCheck2, Search, Star, UsersRound } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
 import Alert from "../components/Alert.jsx";
 import AccessibleDialog from "../components/AccessibleDialog.jsx";
@@ -20,7 +20,7 @@ const status = (value) => <span className={`status-badge status-${value}`}>{valu
 export function MyListingsPage({ type }) {
   const { user } = useAuth();
   const isRequest = type === "request";
-  const endpoint = isRequest ? `/student-requests?student_id=${user.id}` : `/tutor-posts?tutor_id=${user.id}&status=`;
+  const endpoint = isRequest ? `/student-requests?student_id=${user.id}&limit=100` : `/tutor-posts?tutor_id=${user.id}&status=&limit=100`;
   const columns = isRequest ? [
     { key: "subject", label: "Subject" }, { key: "class_level", label: "Level" }, { key: "budget", label: "Budget", render: (value) => `৳${value}` },
     { key: "teaching_mode", label: "Mode" }, { key: "status", label: "Status", render: status }, { key: "created_at", label: "Created", render: (value) => new Date(value).toLocaleDateString() },
@@ -33,7 +33,7 @@ export function MyListingsPage({ type }) {
 }
 
 export function DashboardTutorsPage() {
-  const { data, loading, error } = useApi("/tutors");
+  const { data, loading, error } = useApi("/tutors?limit=100");
   const [message, setMessage] = useState("");
   const save = async (id) => { try { await api.post(`/students/saved-tutors/${id}`); setMessage("Tutor saved."); } catch (requestError) { setMessage(getErrorMessage(requestError)); } };
   return <section className="dashboard-marketplace-page"><PageHeader eyebrow="Mentor directory" title="Browse tutors" description="Explore verified, experienced tutors and save the people whose teaching style feels right." actions={<Link className="button button-ghost" to="/tutors"><Search size={15} /> Advanced filters</Link>} /><Alert type="success">{message}</Alert><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <div className="card-grid">{data.map((tutor) => <TutorCard tutor={tutor} key={tutor.user_id} onSave={save} />)}</div> : <EmptyState icon={UsersRound} title="No mentors found" text="New mentor profiles will appear here as they join." />}</section>;
@@ -46,19 +46,28 @@ export function SavedTutorsPage() {
 }
 
 export function BrowseRequestsPage() {
-  const { data, loading, error, reload } = useApi("/student-requests?status=open");
+  const { data, loading, error, reload } = useApi("/student-requests?status=open&limit=100");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ proposal_message: "", expected_fee: "", available_time: "" });
   const [message, setMessage] = useState("");
+  useEffect(() => {
+    const requestedId = Number(searchParams.get("request"));
+    if (requestedId && !selected && data.length) {
+      const request = data.find((item) => item.id === requestedId);
+      if (request) setSelected(request);
+    }
+  }, [data, searchParams, selected]);
   const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   const apply = async (event) => {
     event.preventDefault(); setMessage("");
-    try { await api.post("/applications", { ...form, student_request_id: selected.id }); setSelected(null); setForm({ proposal_message: "", expected_fee: "", available_time: "" }); setMessage("Proposal sent successfully."); reload(); }
+    try { await api.post("/applications", { ...form, student_request_id: selected.id }); setSelected(null); setSearchParams({}, { replace: true }); setForm({ proposal_message: "", expected_fee: "", available_time: "" }); setMessage("Proposal sent successfully."); reload(); }
     catch (requestError) { setMessage(getErrorMessage(requestError)); }
   };
-  const closeProposal = () => setSelected(null);
+  const openProposal = (request) => { setSelected(request); setSearchParams({ request: String(request.id) }, { replace: true }); };
+  const closeProposal = () => { setSelected(null); setSearchParams({}, { replace: true }); };
   const proposalTitleId = selected ? `proposal-title-${selected.id}` : undefined;
-  return <section className="dashboard-marketplace-page"><PageHeader eyebrow="Open opportunities" title="Browse student requests" description="Find specific learning needs that match your subjects, style, and schedule." /><Alert type={message.includes("success") ? "success" : "error"}>{message}</Alert><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <div className="card-grid">{data.map((request) => <RequestCard key={request.id} request={request} action={<button className="button button-small" onClick={() => setSelected(request)}>Send proposal</button>} />)}</div> : <EmptyState icon={Search} title="No open requests" text="New student learning needs will appear here." />}{selected && <AccessibleDialog as="form" onSubmit={apply} onClose={closeProposal} labelledBy={proposalTitleId}><button type="button" className="modal-close" onClick={closeProposal} aria-label="Close proposal dialog">×</button><span className="eyebrow">Apply to request</span><h2 id={proposalTitleId}>{selected.subject} · {selected.class_level}</h2><p className="modal-intro">Explain how you would approach this learner’s goal and be specific about time and price.</p><FormField name="proposal_message" label="Proposal message" as="textarea" value={form.proposal_message} onChange={change} required /><FormField name="expected_fee" label="Expected fee (৳)" type="number" value={form.expected_fee} onChange={change} required /><FormField name="available_time" label="Available time" value={form.available_time} onChange={change} required /><button className="button button-block">Submit proposal</button></AccessibleDialog>}</section>;
+  return <section className="dashboard-marketplace-page"><PageHeader eyebrow="Open opportunities" title="Browse student requests" description="Find specific learning needs that match your subjects, style, and schedule." /><Alert type={message.includes("success") ? "success" : "error"}>{message}</Alert><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <div className="card-grid">{data.map((request) => <RequestCard key={request.id} request={request} action={<button className="button button-small" onClick={() => openProposal(request)}>Send proposal</button>} />)}</div> : <EmptyState icon={Search} title="No open requests" text="New student learning needs will appear here." />}{selected && <AccessibleDialog as="form" onSubmit={apply} onClose={closeProposal} labelledBy={proposalTitleId}><button type="button" className="modal-close" onClick={closeProposal} aria-label="Close proposal dialog">×</button><span className="eyebrow">Apply to request</span><h2 id={proposalTitleId}>{selected.subject} · {selected.class_level}</h2><p className="modal-intro">Explain how you would approach this learner’s goal and be specific about time and price.</p><FormField name="proposal_message" label="Proposal message" as="textarea" value={form.proposal_message} onChange={change} required /><FormField name="expected_fee" label="Expected fee (৳)" type="number" value={form.expected_fee} onChange={change} required /><FormField name="available_time" label="Available time" value={form.available_time} onChange={change} required /><button className="button button-block">Submit proposal</button></AccessibleDialog>}</section>;
 }
 
 export function ApplicationsPage() {

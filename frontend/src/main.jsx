@@ -13,8 +13,9 @@ import "./styles/course-artwork.css";
 import "./styles/discovery-plus.css";
 import "./styles/course-experience.css";
 import App from "./App.jsx";
+import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></StrictMode>,
+  <StrictMode><BrowserRouter><AppErrorBoundary><AuthProvider><App /></AuthProvider></AppErrorBoundary></BrowserRouter></StrictMode>,
 );

@@ -9,20 +9,6 @@ export default function PublicLayout() {
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    const titles = {
-      "/": "Mentor Market · Learn with proof",
-      "/tutors": "Explore mentors · Mentor Market",
-      "/student-requests": "Open student briefs · Mentor Market",
-      "/about": "About · Mentor Market",
-      "/how-it-works": "How it works · Mentor Market",
-      "/become-a-tutor": "Teach on Mentor Market",
-      "/contact": "Support · Mentor Market",
-    };
-    document.title = titles[location.pathname] || (location.pathname.startsWith("/tutors/") ? "Mentor profile · Mentor Market" : "Mentor Market");
-  }, [location.pathname]);
-
-  useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 720);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -34,6 +20,6 @@ export default function PublicLayout() {
     <Navbar />
     <div id="public-content" tabIndex="-1"><div className="public-route-frame" key={location.pathname}><Outlet /></div></div>
     <Footer />
-    <button className={`public-back-to-top ${showBackToTop ? "is-visible" : ""}`} type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top"><ArrowUp size={18} /></button>
+    <button className={`public-back-to-top ${showBackToTop ? "is-visible" : ""}`} type="button" onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })} aria-label="Back to top"><ArrowUp size={18} /></button>
   </div>;
 }

@@ -16,7 +16,8 @@ export const listRequests = asyncHandler(async (req, res) => {
   let students = [];
   if (studentIds.length) {
     [students] = await db.query(
-      `SELECT id, full_name, avatar_url FROM users WHERE id IN (${studentIds.map(() => "?").join(",")})`, studentIds,
+      `SELECT id, SUBSTRING_INDEX(full_name, ' ', 1) AS full_name, avatar_url
+       FROM users WHERE id IN (${studentIds.map(() => "?").join(",")})`, studentIds,
     );
   }
   const byId = Object.fromEntries(students.map((student) => [student.id, student]));

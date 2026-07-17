@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { getErrorMessage } from "../../api/axios.js";
 import Alert from "../../components/Alert.jsx";
+import AmbientVideo from "../../components/AmbientVideo.jsx";
 import Brand from "../../components/Brand.jsx";
 import DemoVideo from "../../components/DemoVideo.jsx";
 import FormField from "../../components/FormField.jsx";
@@ -13,7 +14,8 @@ import { roleHome } from "../../utils/roleHome.js";
 
 export default function AuthPage({ mode }) {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: searchParams.get("role") || "student" });
+  const requestedRole = searchParams.get("role");
+  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: ["student", "tutor"].includes(requestedRole) ? requestedRole : "student" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -26,7 +28,10 @@ export default function AuthPage({ mode }) {
     event.preventDefault(); setSubmitting(true); setError("");
     try {
       const nextUser = mode === "login" ? await login({ email: form.email, password: form.password }) : await register(form);
-      const requestedPath = location.state?.from?.pathname;
+      const from = location.state?.from;
+      const requestedPath = from?.pathname?.startsWith("/") && !from.pathname.startsWith("//")
+        ? `${from.pathname}${from.search || ""}${from.hash || ""}`
+        : "";
       navigate(requestedPath || roleHome(nextUser.role), { replace: true });
     } catch (requestError) { setError(getErrorMessage(requestError)); }
     finally { setSubmitting(false); }
@@ -40,7 +45,7 @@ export default function AuthPage({ mode }) {
   return (
     <main className="auth-page auth-premium">
       <section className="auth-story" aria-label="Mentor Market preview">
-        <video key={storyMedia.video} className="auth-story-video" src={storyMedia.video} poster={storyMedia.poster} autoPlay muted loop playsInline preload="metadata" />
+        <AmbientVideo key={storyMedia.video} className="auth-story-video" src={storyMedia.video} poster={storyMedia.poster} label="background learning preview" decorative />
         <div className="auth-story-shade" />
         <div className="auth-story-top"><Brand light /><Link to="/"><ArrowLeft size={15} /> Back to site</Link></div>
         <div className="auth-story-content">
@@ -64,7 +69,7 @@ export default function AuthPage({ mode }) {
           <FormField label="Email address" name="email" type="email" value={form.email} onChange={change} required placeholder="you@example.com" autoComplete="email" />
           <div className="password-field"><FormField label="Password" name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={change} required placeholder={isLogin ? "Enter your password" : "At least 8 characters"} autoComplete={isLogin ? "current-password" : "new-password"} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
           {!isLogin && form.password && <div className="password-strength" aria-live="polite"><div aria-hidden="true">{[0, 1, 2, 3].map((step) => <i className={step < passwordScore ? "active" : ""} key={step} />)}</div><span>{passwordScore < 2 ? "Keep going" : passwordScore < 4 ? "Good password" : "Strong password"}</span><small>Use 8+ characters with a number and symbol.</small></div>}
-          {!isLogin && <div className="role-selector"><span>I am joining as</span><div><label className={form.role === "student" ? "selected" : ""}><input type="radio" name="role" value="student" checked={form.role === "student"} onChange={change} /><BookOpen size={20} /><span><b>Student</b><small>Find a mentor and manage learning</small></span><Check size={15} /></label><label className={form.role === "tutor" ? "selected" : ""}><input type="radio" name="role" value="tutor" checked={form.role === "tutor"} onChange={change} /><GraduationCap size={20} /><span><b>Mentor</b><small>Teach, connect, and organize classes</small></span><Check size={15} /></label></div></div>}
+          {!isLogin && <fieldset className="role-selector"><legend>I am joining as</legend><div><label className={form.role === "student" ? "selected" : ""}><input type="radio" name="role" value="student" checked={form.role === "student"} onChange={change} /><BookOpen size={20} /><span><b>Student</b><small>Find a mentor and manage learning</small></span><Check size={15} /></label><label className={form.role === "tutor" ? "selected" : ""}><input type="radio" name="role" value="tutor" checked={form.role === "tutor"} onChange={change} /><GraduationCap size={20} /><span><b>Mentor</b><small>Teach, connect, and organize classes</small></span><Check size={15} /></label></div></fieldset>}
           {isLogin && <div className="auth-options"><span><Sparkles size={14} /> Your role opens the right workspace automatically.</span><Link to="/contact">Need help?</Link></div>}
           <button className="button button-block auth-submit" disabled={submitting}>{submitting ? "Opening your workspace…" : isLogin ? <>Log in <ArrowRight size={17} /></> : <>Create account <ArrowRight size={17} /></>}</button>
           <div className="auth-switch">{isLogin ? "New to Mentor Market?" : "Already have an account?"} <Link to={isLogin ? "/register" : "/login"}>{isLogin ? "Create an account" : "Log in"}</Link></div>

@@ -4,35 +4,58 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Alert from "../../components/Alert.jsx";
+import AmbientVideo from "../../components/AmbientVideo.jsx";
 import DemoVideo from "../../components/DemoVideo.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import LoadingSpinner from "../../components/LoadingSpinner.jsx";
+import Pagination from "../../components/Pagination.jsx";
 import TutorCard from "../../components/TutorCard.jsx";
 import useApi from "../../hooks/useApi.js";
+import useDebouncedValue from "../../hooks/useDebouncedValue.js";
+import useReducedMotion from "../../hooks/useReducedMotion.js";
 
 const subjects = ["Mathematics", "Physics", "English", "Chemistry", "IELTS", "Programming"];
+const emptyFilters = { q: "", subject: "", mode: "", location: "", maxPrice: "", minRating: "" };
 
 export default function FindTutorsPage() {
-  const [searchParams] = useSearchParams();
-  const initial = { q: searchParams.get("q") || "", subject: searchParams.get("subject") || "", mode: searchParams.get("mode") || "", location: searchParams.get("location") || "", maxPrice: searchParams.get("maxPrice") || "", minRating: searchParams.get("minRating") || "" };
-  const [filters, setFilters] = useState(initial);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reducedMotion = useReducedMotion();
+  const filters = useMemo(() => Object.fromEntries(Object.keys(emptyFilters).map((key) => [key, searchParams.get(key) || ""])), [searchParams]);
+  const sort = searchParams.get("sort") || "recommended";
+  const page = Math.max(Number.parseInt(searchParams.get("page"), 10) || 1, 1);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sort, setSort] = useState("recommended");
   const filterButtonRef = useRef(null);
   const filterPanelRef = useRef(null);
-  const query = useMemo(() => new URLSearchParams(Object.entries(filters).filter(([, value]) => value)).toString(), [filters]);
-  const { data, loading, error } = useApi(`/tutors?${query}`);
-  const change = (event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
-  const clear = () => setFilters({ q: "", subject: "", mode: "", location: "", maxPrice: "", minRating: "" });
+  const debouncedQuery = useDebouncedValue(filters.q);
+  const debouncedLocation = useDebouncedValue(filters.location);
+  const debouncedMaxPrice = useDebouncedValue(filters.maxPrice);
+  const query = useMemo(() => new URLSearchParams(Object.entries({
+    ...filters,
+    q: debouncedQuery,
+    location: debouncedLocation,
+    maxPrice: debouncedMaxPrice,
+    page,
+    limit: 12,
+    sort,
+  }).filter(([, value]) => value !== "")).toString(), [debouncedLocation, debouncedMaxPrice, debouncedQuery, filters, page, sort]);
+  const { data, meta, loading, error } = useApi(`/tutors?${query}`);
+  const updateParams = (updates, keepPage = false) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
+    if (!keepPage) next.delete("page");
+    setSearchParams(next, { replace: true });
+  };
+  const change = (event) => updateParams({ [event.target.name]: event.target.value });
+  const clear = () => setSearchParams(sort === "recommended" ? {} : { sort }, { replace: true });
   const activeCount = Object.values(filters).filter(Boolean).length;
-  const results = useMemo(() => {
-    const items = [...(data || [])];
-    if (sort === "rating") return items.sort((a, b) => Number(b.average_rating || 0) - Number(a.average_rating || 0));
-    if (sort === "price") return items.sort((a, b) => Number(a.hourly_rate || 0) - Number(b.hourly_rate || 0));
-    if (sort === "experience") return items.sort((a, b) => Number(b.experience_years || 0) - Number(a.experience_years || 0));
-    return items.sort((a, b) => Number(b.is_verified || 0) - Number(a.is_verified || 0) || Number(b.average_rating || 0) - Number(a.average_rating || 0));
-  }, [data, sort]);
+  const results = data || [];
+  const total = meta?.total ?? results.length;
+  const pages = meta?.pages ?? 1;
   const featured = results.find((tutor) => tutor.demo_video_url) || results[0];
+  const changePage = (nextPage) => {
+    updateParams({ page: String(nextPage) }, true);
+    window.requestAnimationFrame(() => document.querySelector(".discovery-results")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" }));
+  };
 
   useEffect(() => {
     if (!filtersOpen) return undefined;
@@ -40,15 +63,22 @@ export default function FindTutorsPage() {
     const focusFrame = window.requestAnimationFrame(() => {
       filterPanelRef.current?.querySelector("button, select, input")?.focus();
     });
-    const closeOnEscape = (event) => {
+    const handleDialogKeys = (event) => {
       if (event.key === "Escape") setFiltersOpen(false);
+      if (event.key !== "Tab") return;
+      const focusable = [...(filterPanelRef.current?.querySelectorAll("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])") || [])];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("keydown", handleDialogKeys);
     return () => {
       window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("keydown", handleDialogKeys);
       filterButtonRef.current?.focus();
     };
   }, [filtersOpen]);
@@ -60,13 +90,13 @@ export default function FindTutorsPage() {
           <span className="page-index"><i /> Mentor directory · Bangladesh</span>
           <h1>Find how you<br /><em>learn best.</em></h1>
           <p>Preview real teaching styles, then compare expertise, availability, reviews, and rate.</p>
-          <form className="marketplace-search" onSubmit={(event) => { event.preventDefault(); document.querySelector(".discovery-results")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}><Search size={19} /><input aria-label="Search mentors" name="q" value={filters.q} onChange={change} placeholder="Search a subject, mentor, or qualification" /><button type="submit">Search</button></form>
-          <div className="directory-quick-topics">{subjects.slice(0, 4).map((subject) => <button className={filters.subject === subject ? "active" : ""} type="button" key={subject} onClick={() => setFilters((current) => ({ ...current, subject: current.subject === subject ? "" : subject }))}>{subject}</button>)}</div>
+          <form className="marketplace-search" onSubmit={(event) => { event.preventDefault(); document.querySelector(".discovery-results")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" }); }}><Search size={19} /><input aria-label="Search mentors" name="q" value={filters.q} onChange={change} placeholder="Search a subject, mentor, or qualification" /><button type="submit">Search</button></form>
+          <div className="directory-quick-topics">{subjects.slice(0, 4).map((subject) => <button className={filters.subject === subject ? "active" : ""} aria-pressed={filters.subject === subject} type="button" key={subject} onClick={() => updateParams({ subject: filters.subject === subject ? "" : subject })}>{subject}</button>)}</div>
         </div>
         <div className="directory-feature">
           {featured ? <>
             <div className="directory-feature-media">
-              {featured.demo_video_url ? <video src={featured.demo_video_url} poster={featured.thumbnail_url} autoPlay muted loop playsInline preload="metadata" aria-label={`${featured.full_name} mentor preview`} /> : <img src={featured.thumbnail_url || "/media/math-studio.svg"} alt="" />}
+              {featured.demo_video_url ? <AmbientVideo src={featured.demo_video_url} poster={featured.thumbnail_url} label={`${featured.full_name} mentor preview`} /> : <img src={featured.thumbnail_url || "/media/math-studio.svg"} alt="" />}
               <span><i /> Teaching preview</span>
               <DemoVideo src={featured.demo_video_url} poster={featured.thumbnail_url} title={`${featured.full_name} teaching preview`} variant="icon" />
             </div>
@@ -79,11 +109,11 @@ export default function FindTutorsPage() {
     <section className="container discovery-body">
       <button ref={filterButtonRef} type="button" className="mobile-filter-button" aria-expanded={filtersOpen} aria-controls="tutor-filter-panel" onClick={() => setFiltersOpen(!filtersOpen)}><Filter size={16} /> Refine results {activeCount > 0 && <b>{activeCount}</b>}</button>
       {filtersOpen && <button type="button" className="filter-scrim" aria-label="Close filters" onClick={() => setFiltersOpen(false)} />}
-      <aside ref={filterPanelRef} id="tutor-filter-panel" className={filtersOpen ? "filter-sidebar is-open" : "filter-sidebar"} aria-label="Tutor filters">
-        <div className="filter-heading"><span><SlidersHorizontal size={17} /> Refine your match</span><button type="button" onClick={() => setFiltersOpen(false)} className="filter-mobile-close" aria-label="Close tutor filters"><X size={17} /></button></div>
+      <aside ref={filterPanelRef} id="tutor-filter-panel" className={filtersOpen ? "filter-sidebar is-open" : "filter-sidebar"} aria-labelledby="tutor-filter-title" aria-modal={filtersOpen ? "true" : undefined} role={filtersOpen ? "dialog" : undefined}>
+        <div className="filter-heading"><span id="tutor-filter-title"><SlidersHorizontal size={17} /> Refine your match</span><button type="button" onClick={() => setFiltersOpen(false)} className="filter-mobile-close" aria-label="Close tutor filters"><X size={17} /></button></div>
         <p className="filter-intro">Start broad, then narrow by the details that matter to your week.</p>
         <label className="filter-control"><span>Subject</span><select name="subject" value={filters.subject} onChange={change}><option value="">All subjects</option>{subjects.map((subject) => <option key={subject}>{subject}</option>)}</select><ChevronDown size={14} /></label>
-        <div className="filter-control"><span>Teaching mode</span><div className="segmented-filter"><button className={!filters.mode ? "active" : ""} onClick={() => setFilters((current) => ({ ...current, mode: "" }))} type="button">Any</button><button className={filters.mode === "online" ? "active" : ""} onClick={() => setFilters((current) => ({ ...current, mode: "online" }))} type="button">Online</button><button className={filters.mode === "offline" ? "active" : ""} onClick={() => setFilters((current) => ({ ...current, mode: "offline" }))} type="button">Offline</button></div></div>
+        <div className="filter-control"><span>Teaching mode</span><div className="segmented-filter"><button className={!filters.mode ? "active" : ""} aria-pressed={!filters.mode} onClick={() => updateParams({ mode: "" })} type="button">Any</button><button className={filters.mode === "online" ? "active" : ""} aria-pressed={filters.mode === "online"} onClick={() => updateParams({ mode: "online" })} type="button">Online</button><button className={filters.mode === "offline" ? "active" : ""} aria-pressed={filters.mode === "offline"} onClick={() => updateParams({ mode: "offline" })} type="button">Offline</button></div></div>
         <label className="filter-control"><span>Location</span><div className="input-with-icon"><MapPin size={15} /><input name="location" value={filters.location} onChange={change} placeholder="e.g. Dhanmondi" /></div></label>
         <label className="filter-control"><span>Maximum hourly rate</span><div className="price-input"><b>৳</b><input name="maxPrice" type="number" min="0" value={filters.maxPrice} onChange={change} placeholder="Any budget" /></div></label>
         <label className="filter-control"><span>Minimum rating</span><select name="minRating" value={filters.minRating} onChange={change}><option value="">Any rating</option><option value="4">4.0 and above</option><option value="4.5">4.5 and above</option></select><ChevronDown size={14} /></label>
@@ -91,9 +121,9 @@ export default function FindTutorsPage() {
         <button type="button" className="filter-clear" onClick={clear}><RotateCcw size={14} /> Reset all filters</button>
       </aside>
       <div className="discovery-results">
-        <div className="results-toolbar"><div><span className="results-kicker">Curated marketplace</span><strong>{loading ? "Finding mentors…" : `${results.length} mentor${results.length === 1 ? "" : "s"} to explore`}</strong><p>Each card includes a teaching preview when one is available.</p></div><label>Sort by <select value={sort} onChange={(event) => setSort(event.target.value)}><option value="recommended">Recommended</option><option value="rating">Highest rated</option><option value="price">Lowest rate</option><option value="experience">Most experienced</option></select></label></div>
-        {activeCount > 0 && <div className="active-filters" aria-label="Active filters">{Object.entries(filters).filter(([, value]) => value).map(([key, value]) => <button type="button" key={key} onClick={() => setFilters((current) => ({ ...current, [key]: "" }))}><span>{key === "q" ? "Search" : key.replace(/([A-Z])/g, " $1")}</span>{value}<X size={12} /></button>)}</div>}
-        <Alert>{error}</Alert>{loading ? <LoadingSpinner label="Loading tutors" /> : results.length ? <div className="card-grid tutor-grid">{results.map((tutor) => <TutorCard key={tutor.user_id} tutor={tutor} previewVideo />)}</div> : <EmptyState title="No matching mentors" text="Try removing one or two filters to open up the directory." />}
+        <div className="results-toolbar"><div><span className="results-kicker">Curated marketplace</span><strong>{loading ? "Finding mentors…" : `${total} mentor${total === 1 ? "" : "s"} to explore`}</strong><p>Each card includes a teaching preview when one is available.</p></div><label>Sort by <select value={sort} onChange={(event) => updateParams({ sort: event.target.value === "recommended" ? "" : event.target.value })}><option value="recommended">Recommended</option><option value="rating">Highest rated</option><option value="price">Lowest rate</option><option value="experience">Most experienced</option></select></label></div>
+        {activeCount > 0 && <div className="active-filters" aria-label="Active filters">{Object.entries(filters).filter(([, value]) => value).map(([key, value]) => <button type="button" key={key} aria-label={`Remove ${key === "q" ? "search" : key.replace(/([A-Z])/g, " $1")} filter: ${value}`} onClick={() => updateParams({ [key]: "" })}><span>{key === "q" ? "Search" : key.replace(/([A-Z])/g, " $1")}</span>{value}<X size={12} /></button>)}</div>}
+        <Alert>{error}</Alert><div aria-live="polite" aria-busy={loading}>{loading ? <LoadingSpinner label="Loading tutors" /> : results.length ? <><div className="card-grid tutor-grid">{results.map((tutor) => <TutorCard key={tutor.user_id} tutor={tutor} previewVideo />)}</div><Pagination page={page} pages={pages} onChange={changePage} label="Mentor directory pages" /></> : <EmptyState title="No matching mentors" text="Try removing one or two filters to open up the directory." />}</div>
       </div>
     </section>
   </main>;

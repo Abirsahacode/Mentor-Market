@@ -1,5 +1,5 @@
 import { ArrowRight, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
 import { roleHome } from "../utils/roleHome.js";
@@ -8,6 +8,8 @@ import Brand from "./Brand.jsx";
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrollState, setScrollState] = useState({ elevated: false, progress: 0 });
+  const toggleRef = useRef(null);
+  const navRef = useRef(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,19 +40,39 @@ export default function Navbar() {
   }, []);
   useEffect(() => {
     if (!open) return undefined;
-    const closeOnEscape = (event) => { if (event.key === "Escape") close(); };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    const previousOverflow = document.body.style.overflow;
+    const frame = window.requestAnimationFrame(() => navRef.current?.querySelector("a, button")?.focus());
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); close(); return; }
+      if (event.key !== "Tab") return;
+      const focusable = [...(navRef.current?.querySelectorAll("a[href], button:not([disabled])") || [])];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    const closeOnDesktop = () => { if (window.innerWidth > 920) close(); };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", closeOnDesktop);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", closeOnDesktop);
+      toggleRef.current?.focus();
+    };
   }, [open]);
 
   return (
-    <header className={`navbar ${scrollState.elevated ? "is-elevated" : ""}`} style={{ "--nav-progress": `${scrollState.progress}%` }}>
+    <><header className={`navbar ${scrollState.elevated ? "is-elevated" : ""}`} style={{ "--nav-progress": `${scrollState.progress}%` }}>
       <div className="container nav-inner">
         <div className="nav-brand-lockup"><Brand onClick={close} /><span>Learn with proof</span></div>
-        <button className="nav-toggle" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="public-navigation" onClick={() => setOpen(!open)}>
+        <button ref={toggleRef} className="nav-toggle" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="public-navigation" onClick={() => setOpen(!open)}>
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
-        <nav id="public-navigation" className={open ? "nav-links is-open" : "nav-links"} aria-label="Primary navigation">
+        <nav ref={navRef} id="public-navigation" className={open ? "nav-links is-open" : "nav-links"} aria-label="Primary navigation">
           <div className="nav-primary">
             <NavLink to="/tutors" onClick={close}>Explore mentors</NavLink>
             <NavLink to="/student-requests" onClick={close}>Open briefs</NavLink>
@@ -63,6 +85,6 @@ export default function Navbar() {
         </nav>
       </div>
       <span className="nav-scroll-progress" aria-hidden="true" />
-    </header>
+    </header>{open ? <button type="button" className="public-nav-scrim" aria-label="Close navigation" onClick={close} /> : null}</>
   );
 }

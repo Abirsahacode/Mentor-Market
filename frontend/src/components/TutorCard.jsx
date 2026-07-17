@@ -24,7 +24,7 @@ export default function TutorCard({ tutor, onSave, previewVideo = false }) {
       <div className="tutor-card-head">
         <UserAvatar name={tutor.full_name} image={tutor.avatar_url} size="large" />
         <div className="tutor-identity">
-          <div className="name-line"><h3>{tutor.full_name}</h3>{tutor.is_verified ? <BadgeCheck className="verified-icon" size={16} /> : null}</div>
+          <div className="name-line"><h3>{tutor.full_name}</h3>{tutor.is_verified ? <><BadgeCheck className="verified-icon" size={16} aria-hidden="true" /><span className="sr-only">Verified mentor</span></> : null}</div>
           <p>{tutor.qualifications || "Independent subject tutor"}</p>
         </div>
         {onSave && <button className="card-icon-button" onClick={() => onSave(tutor.user_id)} aria-label={`Save ${tutor.full_name}`}><Heart size={17} /></button>}

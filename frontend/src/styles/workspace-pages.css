@@ -347,6 +347,10 @@ input::placeholder, textarea::placeholder { color: #9399a0; }
 .finance-notice svg { flex: 0 0 auto; }
 .finance-notice strong { font-size: var(--type-small); }
 .finance-notice p { margin: 4px 0 0; color: #54766e; font-size: var(--type-caption); }
+.payment-amount-preview { display: flex; margin: -2px 0 16px; padding: 14px; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; background: var(--primary-soft); }
+.payment-amount-preview span { color: var(--muted); font-size: .7rem; }
+.payment-amount-preview strong { margin-top: 3px; color: var(--ink); font-size: 1.3rem; }
+.payment-amount-preview small { margin-top: 4px; color: var(--muted); font-size: .68rem; }
 .finance-studio-grid { grid-template-columns: minmax(300px, .65fr) minmax(0, 1.35fr); align-items: start; }
 
 /* Notifications and reviews */

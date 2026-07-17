@@ -1,6 +1,6 @@
 import { MessageCircle, Search, Send, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
 import Alert from "../components/Alert.jsx";
 import EmptyState from "../components/EmptyState.jsx";
@@ -27,10 +27,18 @@ function Conversation({ person, onSent }) {
 
 export default function MessagesPage() {
   const { data, loading, error, reload } = useApi("/messages/conversations");
-  const [selectedId, setSelectedId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedId = Number(searchParams.get("recipient")) || null;
+  const requestedName = searchParams.get("name")?.trim().slice(0, 100) || "Mentor";
+  const [selectedId, setSelectedId] = useState(requestedId);
   const [query, setQuery] = useState("");
-  const selected = data.find((item) => item.user_id === selectedId) || data[0];
+  const selected = data.find((item) => item.user_id === selectedId) || (selectedId === requestedId && requestedId ? { user_id: requestedId, full_name: requestedName, last_message: "" } : null) || data[0];
   const filtered = useMemo(() => data.filter((person) => `${person.full_name} ${person.last_message}`.toLowerCase().includes(query.toLowerCase())), [data, query]);
+  useEffect(() => { if (requestedId) setSelectedId(requestedId); }, [requestedId]);
   useEffect(() => { if (!selectedId && data[0]) setSelectedId(data[0].user_id); }, [data, selectedId]);
-  return <section className="messages-page"><PageHeader eyebrow="Direct messages" title="Conversations, without the clutter" description="Keep every student–mentor conversation organized, searchable, and easy to revisit." /><Alert>{error}</Alert><div className="messages-layout"><aside className="conversation-list"><div className="conversation-list-head"><div><h2>Inbox</h2><span>{data.length} conversation{data.length === 1 ? "" : "s"}</span></div><label className="conversation-search"><Search size={15} /><span className="sr-only">Search conversations</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search messages" /></label></div>{loading ? <LoadingSpinner /> : filtered.length ? filtered.map((person) => <button className={selected?.user_id === person.user_id ? "conversation-item active" : "conversation-item"} key={person.user_id} onClick={() => setSelectedId(person.user_id)}><UserAvatar name={person.full_name} size="small" /><div><strong>{person.full_name}</strong><p>{person.last_message}</p></div>{person.unread_count > 0 && <b>{person.unread_count}</b>}</button>) : <EmptyState icon={MessageCircle} title={query ? "No matching messages" : "No conversations"} text={query ? "Try another name or phrase." : "Messages from a tutor or student connection will appear here."} />}</aside>{selected ? <Conversation key={selected.user_id} person={selected} onSent={reload} /> : <div className="conversation-empty"><EmptyState icon={MessageCircle} title="Choose a conversation" /></div>}</div></section>;
+  const selectPerson = (person) => {
+    setSelectedId(person.user_id);
+    setSearchParams({ recipient: String(person.user_id), name: person.full_name }, { replace: true });
+  };
+  return <section className="messages-page"><PageHeader eyebrow="Direct messages" title="Conversations, without the clutter" description="Keep every student–mentor conversation organized, searchable, and easy to revisit." /><Alert>{error}</Alert><div className="messages-layout"><aside className="conversation-list"><div className="conversation-list-head"><div><h2>Inbox</h2><span>{data.length} conversation{data.length === 1 ? "" : "s"}</span></div><label className="conversation-search"><Search size={15} /><span className="sr-only">Search conversations</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search messages" /></label></div>{loading ? <LoadingSpinner /> : filtered.length ? filtered.map((person) => <button className={selected?.user_id === person.user_id ? "conversation-item active" : "conversation-item"} key={person.user_id} onClick={() => selectPerson(person)}><UserAvatar name={person.full_name} size="small" /><div><strong>{person.full_name}</strong><p>{person.last_message}</p></div>{person.unread_count > 0 && <b>{person.unread_count}</b>}</button>) : <EmptyState icon={MessageCircle} title={query ? "No matching messages" : "No conversations"} text={query ? "Try another name or phrase." : "Messages from a tutor or student connection will appear here."} />}</aside>{selected ? <Conversation key={selected.user_id} person={selected} onSent={reload} /> : <div className="conversation-empty"><EmptyState icon={MessageCircle} title="Choose a conversation" /></div>}</div></section>;
 }
