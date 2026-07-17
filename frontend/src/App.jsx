@@ -1,37 +1,52 @@
 import { ArrowLeft, Compass } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { Link, Navigate, Route, Routes } from "react-router-dom";
 import Brand from "./components/Brand.jsx";
-import DashboardLayout from "./components/DashboardLayout.jsx";
+import LoadingSpinner from "./components/LoadingSpinner.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import PublicLayout from "./components/PublicLayout.jsx";
-import AdminResourcePage from "./pages/AdminResourcePage.jsx";
-import AssignmentsPage from "./pages/AssignmentsPage.jsx";
-import CreateListingPage from "./pages/CreateListingPage.jsx";
-import CourseDiscoveryPage from "./pages/CourseDiscoveryPage.jsx";
-import CourseDetailsPage from "./pages/CourseDetailsPage.jsx";
-import DashboardPage from "./pages/DashboardPage.jsx";
-import { EarningsPage, PaymentsPage } from "./pages/FinancePages.jsx";
-import MaterialsPage from "./pages/MaterialsPage.jsx";
-import { ApplicationsPage, BookingsPage, BrowseRequestsPage, DashboardTutorsPage, MyListingsPage, ReviewsPage, SavedTutorsPage } from "./pages/MarketplacePages.jsx";
-import MessagesPage from "./pages/MessagesPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import ProgressPage from "./pages/ProgressPage.jsx";
-import QuizzesPage from "./pages/QuizzesPage.jsx";
-import SavedCoursesPage from "./pages/SavedCoursesPage.jsx";
-import { NotificationsPage, ReportsPage, StudentMaterialsPage } from "./pages/UtilityPages.jsx";
-import VerificationPage from "./pages/VerificationPage.jsx";
-import AuthPage from "./pages/public/AuthPage.jsx";
-import FindTutorsPage from "./pages/public/FindTutorsPage.jsx";
+import RouteEffects from "./components/RouteEffects.jsx";
 import HomePage from "./pages/public/HomePage.jsx";
-import StaticPage from "./pages/public/StaticPage.jsx";
-import StudentRequestsPage from "./pages/public/StudentRequestsPage.jsx";
-import TutorDetailsPage from "./pages/public/TutorDetailsPage.jsx";
+
+const DashboardLayout = lazy(() => import("./components/DashboardLayout.jsx"));
+const AdminResourcePage = lazy(() => import("./pages/AdminResourcePage.jsx"));
+const AssignmentsPage = lazy(() => import("./pages/AssignmentsPage.jsx"));
+const CreateListingPage = lazy(() => import("./pages/CreateListingPage.jsx"));
+const CourseDiscoveryPage = lazy(() => import("./pages/CourseDiscoveryPage.jsx"));
+const CourseDetailsPage = lazy(() => import("./pages/CourseDetailsPage.jsx"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage.jsx"));
+const MaterialsPage = lazy(() => import("./pages/MaterialsPage.jsx"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage.jsx"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage.jsx"));
+const ProgressPage = lazy(() => import("./pages/ProgressPage.jsx"));
+const QuizzesPage = lazy(() => import("./pages/QuizzesPage.jsx"));
+const SavedCoursesPage = lazy(() => import("./pages/SavedCoursesPage.jsx"));
+const VerificationPage = lazy(() => import("./pages/VerificationPage.jsx"));
+const AuthPage = lazy(() => import("./pages/public/AuthPage.jsx"));
+const FindTutorsPage = lazy(() => import("./pages/public/FindTutorsPage.jsx"));
+const StaticPage = lazy(() => import("./pages/public/StaticPage.jsx"));
+const StudentRequestsPage = lazy(() => import("./pages/public/StudentRequestsPage.jsx"));
+const TutorDetailsPage = lazy(() => import("./pages/public/TutorDetailsPage.jsx"));
+
+const lazyNamed = (loader, name) => lazy(() => loader().then((module) => ({ default: module[name] })));
+const EarningsPage = lazyNamed(() => import("./pages/FinancePages.jsx"), "EarningsPage");
+const PaymentsPage = lazyNamed(() => import("./pages/FinancePages.jsx"), "PaymentsPage");
+const ApplicationsPage = lazyNamed(() => import("./pages/MarketplacePages.jsx"), "ApplicationsPage");
+const BookingsPage = lazyNamed(() => import("./pages/MarketplacePages.jsx"), "BookingsPage");
+const BrowseRequestsPage = lazyNamed(() => import("./pages/MarketplacePages.jsx"), "BrowseRequestsPage");
+const DashboardTutorsPage = lazyNamed(() => import("./pages/MarketplacePages.jsx"), "DashboardTutorsPage");
+const MyListingsPage = lazyNamed(() => import("./pages/MarketplacePages.jsx"), "MyListingsPage");
+const ReviewsPage = lazyNamed(() => import("./pages/MarketplacePages.jsx"), "ReviewsPage");
+const SavedTutorsPage = lazyNamed(() => import("./pages/MarketplacePages.jsx"), "SavedTutorsPage");
+const NotificationsPage = lazyNamed(() => import("./pages/UtilityPages.jsx"), "NotificationsPage");
+const ReportsPage = lazyNamed(() => import("./pages/UtilityPages.jsx"), "ReportsPage");
+const StudentMaterialsPage = lazyNamed(() => import("./pages/UtilityPages.jsx"), "StudentMaterialsPage");
 
 const RoleShell = ({ role }) => <ProtectedRoute roles={[role]}><DashboardLayout /></ProtectedRoute>;
 const NotFound = () => <main className="not-found-page"><div className="not-found-brand"><Brand /></div><section><div className="not-found-code"><span>4</span><Compass size={70} /><span>4</span></div><p className="eyebrow">Wrong turn, useful detour</p><h1>This page left the lesson.</h1><p>The link may be old, or the page may have moved somewhere more useful.</p><Link className="button" to="/"><ArrowLeft size={16} /> Return to Mentor Market</Link></section></main>;
 
 export default function App() {
-  return <Routes>
+  return <><RouteEffects /><Suspense fallback={<main className="route-loading"><LoadingSpinner label="Loading page" /></main>}><Routes>
     <Route element={<PublicLayout />}>
       <Route index element={<HomePage />} />
       <Route path="tutors" element={<FindTutorsPage />} />
@@ -75,5 +90,5 @@ export default function App() {
       <Route path="notifications" element={<NotificationsPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
-  </Routes>;
+  </Routes></Suspense></>;
 }

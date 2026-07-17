@@ -13,17 +13,78 @@ export const listBookings = asyncHandler(async (req, res) => {
   if (req.query.status) { clauses.push("b.status = ?"); values.push(req.query.status); }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   const [rows] = await db.query(
-    `SELECT b.*, student.full_name AS student_name, tutor.full_name AS tutor_name
-     FROM bookings b JOIN users student ON student.id = b.student_id JOIN users tutor ON tutor.id = b.tutor_id
+    `SELECT b.*, student.full_name AS student_name, tutor.full_name AS tutor_name,
+      COALESCE(post.price, accepted.expected_fee, tutor_profile.hourly_rate) AS payable_amount
+     FROM bookings b
+     JOIN users student ON student.id = b.student_id
+     JOIN users tutor ON tutor.id = b.tutor_id
+     LEFT JOIN tutor_posts post ON post.id = b.tutor_post_id
+     LEFT JOIN applications accepted ON accepted.student_request_id = b.student_request_id
+       AND accepted.tutor_id = b.tutor_id AND accepted.status = 'accepted'
+     LEFT JOIN tutor_profiles tutor_profile ON tutor_profile.user_id = b.tutor_id
      ${where} ORDER BY b.class_date DESC, b.class_time DESC`, values,
   );
   sendSuccess(res, rows, "Bookings loaded");
 });
 
 export const createBooking = asyncHandler(async (req, res) => {
-  const [[tutor]] = await db.query("SELECT id FROM users WHERE id = ? AND role = 'tutor' AND is_active = TRUE", [req.body.tutor_id]);
+  const tutorId = Number(req.body.tutor_id);
+  const [[tutor]] = await db.query(
+    `SELECT u.id, tp.teaching_mode FROM users u
+     LEFT JOIN tutor_profiles tp ON tp.user_id = u.id
+     WHERE u.id = ? AND u.role = 'tutor' AND u.is_active = TRUE`,
+    [tutorId],
+  );
   if (!tutor) throw new ApiError(404, "tutor_not_found", "An active tutor was not found");
-  const booking = await Booking.create({ ...req.body, student_id: req.user.id, status: "pending" });
+
+  const classTypes = ["trial", "one-time", "weekly", "monthly"];
+  const modes = ["online", "offline"];
+  const duration = Number(req.body.duration_minutes || 60);
+  if (!classTypes.includes(req.body.class_type)) throw new ApiError(422, "invalid_class_type", "Choose a valid class type");
+  if (!modes.includes(req.body.mode)) throw new ApiError(422, "invalid_mode", "Choose online or offline teaching");
+  if (![30, 60, 90, 120].includes(duration)) throw new ApiError(422, "invalid_duration", "Class duration must be 30, 60, 90, or 120 minutes");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(req.body.class_date)) throw new ApiError(422, "invalid_date", "Choose a valid class date");
+  if (!/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(req.body.class_time)) throw new ApiError(422, "invalid_time", "Choose a valid class time");
+  const today = new Date().toISOString().slice(0, 10);
+  if (req.body.class_date < today) throw new ApiError(422, "past_class_date", "Class date must be today or later");
+
+  let post = null;
+  if (req.body.tutor_post_id) {
+    [[post]] = await db.query(
+      "SELECT id, tutor_id, teaching_mode, has_trial, status FROM tutor_posts WHERE id = ?",
+      [req.body.tutor_post_id],
+    );
+    if (!post || post.tutor_id !== tutorId || post.status !== "active") {
+      throw new ApiError(422, "invalid_tutor_post", "Choose an active class offered by this tutor");
+    }
+  }
+  const supportedMode = post?.teaching_mode || tutor.teaching_mode;
+  if (supportedMode && supportedMode !== "both" && req.body.mode !== supportedMode) {
+    throw new ApiError(422, "unsupported_mode", `This class is available ${supportedMode} only`);
+  }
+  if (req.body.class_type === "trial" && !post?.has_trial) {
+    throw new ApiError(422, "trial_unavailable", "The selected class does not offer a trial");
+  }
+
+  const [[duplicate]] = await db.query(
+    `SELECT id FROM bookings WHERE student_id = ? AND tutor_id = ? AND class_date = ? AND class_time = ?
+     AND status IN ('pending', 'confirmed', 'rescheduled') LIMIT 1`,
+    [req.user.id, tutorId, req.body.class_date, req.body.class_time],
+  );
+  if (duplicate) throw new ApiError(409, "booking_conflict", "You already have an active request with this tutor at that time");
+
+  const booking = await Booking.create({
+    student_id: req.user.id,
+    tutor_id: tutorId,
+    tutor_post_id: post?.id || null,
+    class_type: req.body.class_type,
+    class_date: req.body.class_date,
+    class_time: req.body.class_time,
+    duration_minutes: duration,
+    mode: req.body.mode,
+    meeting_link_or_location: req.body.meeting_link_or_location,
+    status: "pending",
+  });
   await notify(booking.tutor_id, "New class booking", `You received a ${booking.class_type} class request.`, "new_booking");
   sendSuccess(res, booking, "Booking requested", 201);
 });
@@ -51,4 +112,3 @@ export const updateBooking = asyncHandler(async (req, res) => {
   await notify(recipientId, "Booking updated", `Booking #${booking.id} is now ${updated.status}.`, `booking_${updated.status}`);
   sendSuccess(res, updated, "Booking updated");
 });
-

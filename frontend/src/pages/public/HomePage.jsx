@@ -4,12 +4,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Alert from "../../components/Alert.jsx";
 import CourseArtwork from "../../components/CourseArtwork.jsx";
 import DemoVideo from "../../components/DemoVideo.jsx";
 import RequestCard from "../../components/RequestCard.jsx";
 import TutorCard from "../../components/TutorCard.jsx";
 import UserAvatar from "../../components/UserAvatar.jsx";
 import useApi from "../../hooks/useApi.js";
+import useAuth from "../../hooks/useAuth.js";
 
 const subjects = [
   { name: "Mathematics", note: "Make abstract ideas visible" },
@@ -26,12 +28,13 @@ const firstSubject = (value) => {
 };
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [subject, setSubject] = useState("");
   const [match, setMatch] = useState({ subject: "Mathematics", mode: "", maxPrice: "" });
   const navigate = useNavigate();
-  const { data: tutors, loading: tutorsLoading } = useApi("/tutors?limit=6");
-  const { data: requests, loading: requestsLoading } = useApi("/student-requests?status=open&limit=3");
-  const submit = (event) => { event.preventDefault(); navigate(`/tutors${subject ? `?subject=${encodeURIComponent(subject)}` : ""}`); };
+  const { data: tutors, loading: tutorsLoading, error: tutorsError, reload: reloadTutors } = useApi("/tutors?limit=6");
+  const { data: requests, loading: requestsLoading, error: requestsError, reload: reloadRequests } = useApi("/student-requests?status=open&limit=3");
+  const submit = (event) => { event.preventDefault(); navigate(`/tutors${subject ? `?q=${encodeURIComponent(subject.trim())}` : ""}`); };
   const featuredTutors = (tutors || []).slice(0, 3);
   const leadTutor = featuredTutors[0];
   const shortlist = (tutors || []).filter((tutor) => {
@@ -45,6 +48,9 @@ export default function HomePage() {
     const query = new URLSearchParams(Object.entries(match).filter(([, value]) => value));
     navigate(`/tutors?${query.toString()}`);
   };
+  const briefPath = user?.role === "student" ? "/student/create-request" : user ? "/student-requests" : "/register";
+  const briefLabel = user?.role === "student" ? "Post your brief" : user ? "Browse open briefs" : "Post your brief";
+  const briefState = user ? undefined : { from: { pathname: "/student/create-request" } };
 
   return (
     <main className="home-page">
@@ -67,7 +73,7 @@ export default function HomePage() {
           </div>
 
           <div className="hero-video-board" aria-label="Featured mentor previews">
-            {tutorsLoading ? <div className="hero-film hero-film-loading"><i /><span /><span /></div> : leadTutor ? <article className="hero-film">
+            {tutorsLoading ? <div className="hero-film hero-film-loading"><i /><span /><span /></div> : tutorsError && !leadTutor ? <div className="hero-film hero-film-empty" role="alert"><CirclePlay size={30} /><strong>Previews could not load</strong><button className="button button-small" type="button" onClick={reloadTutors}>Try again</button></div> : leadTutor ? <article className="hero-film">
               <div className="hero-film-media">
                 <CourseArtwork subject={firstSubject(leadTutor.subjects)} />
                 <span className="hero-now-playing"><i /> Preview available</span>
@@ -126,7 +132,7 @@ export default function HomePage() {
       <section className="home-tutors-section">
         <div className="container">
           <div className="section-heading split"><div className="heading-lockup"><span className="section-number">03</span><div><p className="section-kicker">Watch, compare, connect</p><h2>Mentors with something to show.</h2></div></div><Link className="text-link" to="/tutors">See the full directory <ArrowRight size={15} /></Link></div>
-          <div className="card-grid tutor-grid">{tutorsLoading ? [0, 1, 2].map((item) => <article className="listing-card-skeleton" key={item}><i /><span /><span /><b /></article>) : featuredTutors.length ? featuredTutors.map((tutor) => <TutorCard key={tutor.user_id} tutor={tutor} previewVideo />) : <p className="empty-inline">No tutors are listed yet.</p>}</div>
+          {tutorsError && !featuredTutors.length ? <div className="home-section-error"><Alert>{tutorsError}</Alert><button className="button button-ghost button-small" type="button" onClick={reloadTutors}>Retry mentor directory</button></div> : <div className="card-grid tutor-grid">{tutorsLoading ? [0, 1, 2].map((item) => <article className="listing-card-skeleton" key={item}><i /><span /><span /><b /></article>) : featuredTutors.length ? featuredTutors.map((tutor) => <TutorCard key={tutor.user_id} tutor={tutor} previewVideo />) : <p className="empty-inline">No tutors are listed yet.</p>}</div>}
         </div>
       </section>
 
@@ -136,10 +142,10 @@ export default function HomePage() {
           <p className="section-kicker">A second way to match</p>
           <h2>Describe the help. Let mentors come to you.</h2>
           <p>Post a clear brief with your subject, schedule, preferred mode, and budget. Relevant tutors can reply with a proposal.</p>
-          <Link className="button button-ink" to="/student-requests">Browse open briefs <ArrowRight size={16} /></Link>
+          <div className="requests-intro-actions"><Link className="button button-ink" to={briefPath} state={briefState}>{briefLabel} <ArrowRight size={16} /></Link><Link className="text-link" to="/student-requests">Browse open briefs</Link></div>
           <div className="requests-intro-foot"><MapPin size={15} /><span>Online and local matching across Dhaka</span></div>
         </div>
-        <div className="home-request-list">{requestsLoading ? [0, 1, 2].map((item) => <article className="listing-card-skeleton request-skeleton" key={item}><i /><span /><span /><b /></article>) : (requests || []).length ? (requests || []).map((request) => <RequestCard key={request.id} request={request} />) : <p className="empty-inline">No student requests are open right now.</p>}</div>
+        <div className="home-request-list">{requestsError && !(requests || []).length ? <div className="home-section-error"><Alert>{requestsError}</Alert><button className="button button-ghost button-small" type="button" onClick={reloadRequests}>Retry open briefs</button></div> : requestsLoading ? [0, 1, 2].map((item) => <article className="listing-card-skeleton request-skeleton" key={item}><i /><span /><span /><b /></article>) : (requests || []).length ? (requests || []).map((request) => <RequestCard key={request.id} request={request} anonymizeStudent action={<Link className="request-card-link" to="/student-requests">View brief <ArrowRight size={14} /></Link>} />) : <p className="empty-inline">No student requests are open right now.</p>}</div>
       </section>
 
       <section className="home-process">
@@ -156,7 +162,7 @@ export default function HomePage() {
       <section className="container home-final-cta">
         <span className="cta-mark"><BookOpen size={25} /></span>
         <div><small>Your next breakthrough could start here</small><h2>Find a mentor worth learning from.</h2><p>Browse the previews or create a brief in a few minutes.</p></div>
-        <div className="home-final-actions"><Link className="button" to="/tutors">Explore mentors <ArrowRight size={16} /></Link><Link className="text-link" to="/register?role=tutor">I want to teach</Link></div>
+        <div className="home-final-actions"><Link className="button" to="/tutors">Explore mentors <ArrowRight size={16} /></Link><Link className="text-link" to={briefPath} state={briefState}>{briefLabel}</Link></div>
       </section>
     </main>
   );

@@ -1,19 +1,44 @@
 import { ArrowRight, Clock3, MapPin, Search, Send, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import Alert from "../../components/Alert.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import LoadingSpinner from "../../components/LoadingSpinner.jsx";
+import Pagination from "../../components/Pagination.jsx";
 import RequestCard from "../../components/RequestCard.jsx";
 import useApi from "../../hooks/useApi.js";
+import useAuth from "../../hooks/useAuth.js";
+import useDebouncedValue from "../../hooks/useDebouncedValue.js";
+import useReducedMotion from "../../hooks/useReducedMotion.js";
 
 const popularSubjects = ["Mathematics", "Physics", "English", "Chemistry"];
 
 export default function StudentRequestsPage() {
-  const [subject, setSubject] = useState("");
-  const { data, loading, error } = useApi(`/student-requests?status=open${subject ? `&q=${encodeURIComponent(subject)}` : ""}`);
+  const { user } = useAuth();
+  const reducedMotion = useReducedMotion();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const subject = searchParams.get("q") || "";
+  const page = Math.max(Number.parseInt(searchParams.get("page"), 10) || 1, 1);
+  const debouncedSubject = useDebouncedValue(subject);
+  const query = useMemo(() => new URLSearchParams({ status: "open", page: String(page), limit: "12", ...(debouncedSubject ? { q: debouncedSubject } : {}) }).toString(), [debouncedSubject, page]);
+  const { data, meta, loading, error } = useApi(`/student-requests?${query}`);
   const requests = data || [];
+  const total = meta?.total ?? requests.length;
+  const pages = meta?.pages ?? 1;
   const previewRequests = requests.slice(0, 2);
+  const updateSearch = (value) => setSearchParams(value ? { q: value } : {}, { replace: true });
+  const changePage = (nextPage) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("page", String(nextPage));
+    setSearchParams(next, { replace: true });
+    window.requestAnimationFrame(() => document.getElementById("open-requests")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" }));
+  };
+  const requestAction = (request) => {
+    if (user?.role === "tutor") return <Link className="request-card-link" to={`/tutor/requests?request=${request.id}`}>Send proposal <ArrowRight size={14} /></Link>;
+    if (user?.role === "student") return <Link className="request-card-link" to="/student/create-request">Post a brief <ArrowRight size={14} /></Link>;
+    if (user) return null;
+    return <Link className="request-card-link" to="/register?role=tutor" state={{ from: { pathname: "/tutor/requests", search: `?request=${request.id}` } }}>Respond <ArrowRight size={14} /></Link>;
+  };
 
   return <main className="opportunities-page">
     <header className="marketplace-header request-marketplace-header">
@@ -34,10 +59,10 @@ export default function StudentRequestsPage() {
       </div>
     </header>
     <section className="container opportunities-body" id="open-requests">
-      <div className="opportunities-toolbar"><div><span className="section-kicker">Fresh opportunities</span><h2>Find the right brief for you.</h2><p>Search by subject, level, or neighborhood.</p></div><label><Search size={17} /><input value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Search briefs" aria-label="Search student briefs" /></label></div>
-      <div className="request-topic-row"><span>Quick filter</span>{popularSubjects.map((item) => <button type="button" className={subject === item ? "active" : ""} key={item} onClick={() => setSubject(subject === item ? "" : item)}>{item}</button>)}</div>
-      <div className="opportunities-meta"><span>{loading ? "Refreshing the board…" : `${requests.length} open brief${requests.length === 1 ? "" : "s"}`}</span><p><Send size={14} /> Sign in as a tutor to send a proposal.</p></div>
-      <Alert>{error}</Alert>{loading ? <LoadingSpinner label="Loading requests" /> : requests.length ? <div className="card-grid request-grid">{requests.map((request) => <RequestCard key={request.id} request={request} />)}</div> : <EmptyState title="No open requests" text="Try another subject or check back when students post new briefs." />}
+      <div className="opportunities-toolbar"><div><span className="section-kicker">Fresh opportunities</span><h2>Find the right brief for you.</h2><p>Search by subject, level, or neighborhood.</p></div><label><Search size={17} /><input value={subject} onChange={(event) => updateSearch(event.target.value)} placeholder="Search briefs" aria-label="Search student briefs" /></label></div>
+      <div className="request-topic-row"><span>Quick filter</span>{popularSubjects.map((item) => <button type="button" aria-pressed={subject === item} className={subject === item ? "active" : ""} key={item} onClick={() => updateSearch(subject === item ? "" : item)}>{item}</button>)}</div>
+      <div className="opportunities-meta" aria-live="polite"><span>{loading ? "Refreshing the board…" : `${total} open brief${total === 1 ? "" : "s"}`}</span><p><Send size={14} /> {user?.role === "tutor" ? "Choose a brief to send a focused proposal." : "Join as a mentor to send a proposal."}</p></div>
+      <Alert>{error}</Alert><div aria-busy={loading}>{loading ? <LoadingSpinner label="Loading requests" /> : requests.length ? <><div className="card-grid request-grid">{requests.map((request) => <RequestCard key={request.id} request={request} anonymizeStudent action={requestAction(request)} />)}</div><Pagination page={page} pages={pages} onChange={changePage} label="Student brief pages" /></> : <EmptyState title="No open requests" text="Try another subject or check back when students post new briefs." />}</div>
     </section>
   </main>;
 }

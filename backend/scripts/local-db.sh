@@ -11,8 +11,13 @@ LOG_FILE="$RUN_DIR/mariadb.log"
 PORT="${LOCAL_DB_PORT:-3307}"
 UNIT_NAME="mentor-market-mariadb.service"
 
-is_running() {
+service_is_active() {
   systemctl --user is-active --quiet "$UNIT_NAME"
+}
+
+is_running() {
+  [[ -S "$SOCKET" ]] && \
+    mariadb-admin --no-defaults --socket="$SOCKET" --user=root ping --silent 2>/dev/null
 }
 
 initialize() {
@@ -65,6 +70,11 @@ start_database() {
     return
   fi
 
+  if service_is_active; then
+    echo "Project database service is active but its socket is unavailable; restarting it..."
+    systemctl --user stop "$UNIT_NAME"
+  fi
+
   rm -f "$SOCKET" "$PID_FILE"
   systemctl --user reset-failed "$UNIT_NAME" 2>/dev/null || true
   systemd-run \
@@ -109,18 +119,25 @@ reset_database() {
 }
 
 stop_database() {
-  if ! is_running; then
+  if ! service_is_active; then
     echo "Project database is not running."
     return
   fi
-  mariadb-admin --no-defaults --socket="$SOCKET" --user=root shutdown
+  if is_running; then
+    mariadb-admin --no-defaults --socket="$SOCKET" --user=root shutdown
+  fi
   systemctl --user stop "$UNIT_NAME" 2>/dev/null || true
   echo "Project database stopped."
 }
 
 show_status() {
   if is_running; then
-    echo "Project database is running on 127.0.0.1:$PORT (PID $(cat "$PID_FILE"))."
+    local pid="unknown"
+    [[ -r "$PID_FILE" ]] && pid="$(cat "$PID_FILE")"
+    echo "Project database is running on 127.0.0.1:$PORT (PID $pid)."
+  elif service_is_active; then
+    echo "Project database service is active, but the database socket is unavailable." >&2
+    exit 1
   else
     echo "Project database is stopped."
     exit 1
