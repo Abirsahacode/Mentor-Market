@@ -5,7 +5,17 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { notify } from "../utils/notifications.js";
 import { sendSuccess } from "../utils/respond.js";
 
-
+export const listConversations = asyncHandler(async (req, res) => {
+  const [rows] = await db.query(
+    `SELECT u.id AS user_id, u.full_name, u.avatar_url, MAX(m.created_at) AS last_message_at,
+      SUBSTRING_INDEX(GROUP_CONCAT(m.content ORDER BY m.created_at DESC SEPARATOR '|||'), '|||', 1) AS last_message,
+      SUM(m.receiver_id = ? AND m.is_read = FALSE) AS unread_count
+     FROM messages m JOIN users u ON u.id = IF(m.sender_id = ?, m.receiver_id, m.sender_id)
+     WHERE m.sender_id = ? OR m.receiver_id = ? GROUP BY u.id, u.full_name, u.avatar_url ORDER BY last_message_at DESC`,
+    [req.user.id, req.user.id, req.user.id, req.user.id],
+  );
+  sendSuccess(res, rows, "Conversations loaded");
+});
 
 export const getConversation = asyncHandler(async (req, res) => {
   const otherId = Number(req.params.userId);
@@ -17,18 +27,6 @@ export const getConversation = asyncHandler(async (req, res) => {
   );
   await db.query("UPDATE messages SET is_read = TRUE WHERE sender_id = ? AND receiver_id = ?", [otherId, req.user.id]);
   sendSuccess(res, rows, "Conversation loaded");
-});
-
-export const listConversations = asyncHandler(async (req, res) => {
-  const [rows] = await db.query(
-    `SELECT u.id AS user_id, u.full_name, u.avatar_url, MAX(m.created_at) AS last_message_at,
-      SUBSTRING_INDEX(GROUP_CONCAT(m.content ORDER BY m.created_at DESC SEPARATOR '|||'), '|||', 1) AS last_message,
-      SUM(m.receiver_id = ? AND m.is_read = FALSE) AS unread_count
-     FROM messages m JOIN users u ON u.id = IF(m.sender_id = ?, m.receiver_id, m.sender_id)
-     WHERE m.sender_id = ? OR m.receiver_id = ? GROUP BY u.id, u.full_name, u.avatar_url ORDER BY last_message_at DESC`,
-    [req.user.id, req.user.id, req.user.id, req.user.id],
-  );
-  sendSuccess(res, rows, "Conversations loaded");
 });
 
 export const sendMessage = asyncHandler(async (req, res) => {
@@ -52,4 +50,3 @@ export const reportMessage = asyncHandler(async (req, res) => {
   if (!message || message.receiver_id !== req.user.id) throw new ApiError(404, "message_not_found", "Message was not found");
   sendSuccess(res, await Message.update(message.id, { is_reported: true }), "Message reported");
 });
-
