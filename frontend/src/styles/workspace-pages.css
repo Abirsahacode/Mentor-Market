@@ -252,6 +252,7 @@ input::placeholder, textarea::placeholder { color: #9399a0; }
 .profile-completion strong { color: var(--ink); }
 .profile-completion > i { display: block; height: 6px; overflow: hidden; border-radius: 99px; background: #dfe8e4; }
 .profile-completion > i > b { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+.profile-completion-hint { margin: 10px 0 0; font-size: var(--type-caption); color: #9a6b1f; }
 .profile-studio-notes { position: relative; z-index: 1; display: grid; margin-top: 24px; gap: 13px; color: #59645f; font-size: var(--type-caption); }
 .profile-studio-notes span { display: flex; align-items: center; gap: 9px; }
 .profile-studio-notes svg { color: var(--primary-dark); }
