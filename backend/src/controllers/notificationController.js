@@ -3,12 +3,12 @@ import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/respond.js";
 
-export const listNotifications = asyncHandler(async (req, res) => {
-  const filters = { user_id: req.user.id };
-  if (req.query.unread === "true") filters.is_read = false;
-  const { rows } = await Notification.findAll({ filters, limit: 100 });
-  sendSuccess(res, rows, "Notifications loaded");
+export const markAllRead = asyncHandler(async (req, res) => {
+  const { rows } = await Notification.findAll({ filters: { user_id: req.user.id, is_read: false }, limit: 100 });
+  await Promise.all(rows.map((notification) => Notification.update(notification.id, { is_read: true })));
+  sendSuccess(res, null, "All notifications marked read");
 });
+
 
 export const markRead = asyncHandler(async (req, res) => {
   const notification = await Notification.findById(req.params.id);
@@ -16,9 +16,11 @@ export const markRead = asyncHandler(async (req, res) => {
   sendSuccess(res, await Notification.update(notification.id, { is_read: true }), "Notification marked read");
 });
 
-export const markAllRead = asyncHandler(async (req, res) => {
-  const { rows } = await Notification.findAll({ filters: { user_id: req.user.id, is_read: false }, limit: 100 });
-  await Promise.all(rows.map((notification) => Notification.update(notification.id, { is_read: true })));
-  sendSuccess(res, null, "All notifications marked read");
-});
 
+
+export const listNotifications = asyncHandler(async (req, res) => {
+  const filters = { user_id: req.user.id };
+  if (req.query.unread === "true") filters.is_read = false;
+  const { rows } = await Notification.findAll({ filters, limit: 100 });
+  sendSuccess(res, rows, "Notifications loaded");
+});
