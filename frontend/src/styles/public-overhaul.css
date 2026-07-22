@@ -374,6 +374,12 @@
 .public-shell .price-input { border: 1px solid #d9dde2; border-radius: 9px; background: #fff; }
 .public-shell .input-with-icon input,
 .public-shell .price-input input { border: 0; }
+.public-shell .price-range-inputs { display: flex; gap: 8px; }
+.public-shell .price-range-inputs .price-input { flex: 1; min-width: 0; }
+.public-shell .filter-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.public-shell .filter-chip-row button { padding: 7px 10px; border: 1px solid #d9dde2; border-radius: 8px; background: #fff; color: #555961; font-size: .72rem; }
+.public-shell .filter-chip-row button.active { border-color: var(--pub-ink); background: var(--pub-ink); color: #fff; }
+.public-shell .filter-control > span svg { position: relative; top: -1px; margin-right: 4px; }
 .public-shell .filter-note { margin-top: 4px; padding: 15px; border: 0; border-radius: 11px; background: var(--pub-jade-soft); color: var(--pub-jade-dark); }
 .public-shell .filter-note strong { font-size: .74rem; }.public-shell .filter-note small { color: #60786f; font-size: .71rem; }
 .public-shell .filter-clear { display: flex; width: 100%; margin-top: 15px; padding: 10px; align-items: center; justify-content: center; gap: 7px; border: 0; border-top: 1px solid #eceef0; background: transparent; color: #73777f; font-size: .7rem; }

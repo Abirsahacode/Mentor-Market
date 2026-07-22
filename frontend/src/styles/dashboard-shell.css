@@ -599,6 +599,10 @@
 .dashboard-shell select:focus,
 .dashboard-shell textarea:focus { border-color: var(--shell-accent); box-shadow: 0 0 0 3px rgba(var(--shell-accent-rgb), .12); }
 .dashboard-shell .form-field > span { margin-bottom: 8px; color: #4e535b; font-size: .76rem; }
+.dashboard-shell .day-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.dashboard-shell .day-picker button { padding: 7px 12px; border: 1px solid #ced3d9; border-radius: 8px; background: #fff; color: #4e535b; font-size: .78rem; }
+.dashboard-shell .day-picker button.active { border-color: var(--shell-accent); background: var(--shell-accent); color: #fff; }
+.dashboard-shell .day-picker-field { display: block; margin-top: 4px; }
 
 .dashboard-shell .empty-state {
   display: flex;

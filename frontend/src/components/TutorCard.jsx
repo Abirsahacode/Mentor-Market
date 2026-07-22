@@ -29,9 +29,10 @@ export default function TutorCard({ tutor, onSave, previewVideo = false }) {
         </div>
         {onSave && <button className="card-icon-button" onClick={() => onSave(tutor.user_id)} aria-label={`Save ${tutor.full_name}`}><Heart size={17} /></button>}
       </div>
-      <div className="tutor-card-rating"><Star size={14} fill="currentColor" /><strong>{rating ? rating.toFixed(1) : "New"}</strong>{rating > 0 && <span>student rating</span>}</div>
+      <div className="tutor-card-rating"><Star size={14} fill="currentColor" /><strong>{rating ? rating.toFixed(1) : "New"}</strong>{rating > 0 && <span>{tutor.review_count ? `${tutor.review_count} review${tutor.review_count === 1 ? "" : "s"}` : "student rating"}</span>}</div>
       <div className="tag-row tutor-subjects">{subjects.slice(0, 3).map((subject) => <span className="tag" key={subject}>{subject}</span>)}{subjects.length > 3 && <span className="tag">+{subjects.length - 3}</span>}</div>
       <div className="tutor-card-facts"><span><MapPin size={14} /> {tutor.location || "Remote"}</span><span>{tutor.experience_years || 0} yrs experience</span><span>{tutor.teaching_mode || "Both"}</span></div>
+      {tutor.availability && <p className="tutor-card-availability">{tutor.availability}</p>}
       <div className="card-footer">
         <div className="price-lockup"><small>From</small><strong>৳{Number(tutor.hourly_rate || 0).toLocaleString()} <em>/ hour</em></strong></div>
         <Link className="card-link" to={`/tutors/${tutor.user_id}`}>View profile <ArrowRight size={15} /></Link>

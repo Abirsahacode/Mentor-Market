@@ -218,6 +218,7 @@ input::placeholder, textarea::placeholder { color: #9399a0; }
 .name-line h3 { font-size: var(--type-card-title); }
 .tutor-identity > p, .tutor-card-rating, .tutor-card-facts { font-size: var(--type-caption); }
 .tutor-card-facts { min-height: 48px; }
+.tutor-card-availability { margin: 0 20px 20px; color: var(--muted); font-size: var(--type-micro); }
 .tag { padding: 5px 8px; border-color: var(--border); border-radius: 7px; background: #f7f8f8; color: #4c5258; font-size: var(--type-micro); }
 .request-card { padding: 22px; }
 .request-title { grid-template-columns: minmax(88px, .34fr) 1fr; }
@@ -252,7 +253,6 @@ input::placeholder, textarea::placeholder { color: #9399a0; }
 .profile-completion strong { color: var(--ink); }
 .profile-completion > i { display: block; height: 6px; overflow: hidden; border-radius: 99px; background: #dfe8e4; }
 .profile-completion > i > b { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
-.profile-completion-hint { margin: 10px 0 0; font-size: var(--type-caption); color: #9a6b1f; }
 .profile-studio-notes { position: relative; z-index: 1; display: grid; margin-top: 24px; gap: 13px; color: #59645f; font-size: var(--type-caption); }
 .profile-studio-notes span { display: flex; align-items: center; gap: 9px; }
 .profile-studio-notes svg { color: var(--primary-dark); }
