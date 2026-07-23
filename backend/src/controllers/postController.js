@@ -5,6 +5,14 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { getPagination } from "../utils/pagination.js";
 import { sendSuccess } from "../utils/respond.js";
 
+const editablePostFields = [
+  "title", "subject", "level", "price", "teaching_mode", "location", "availability",
+  "has_trial", "thumbnail_url", "demo_video_url", "description", "status",
+];
+const pickEditablePost = (payload) => Object.fromEntries(
+  editablePostFields.filter((field) => payload[field] !== undefined).map((field) => [field, payload[field]]),
+);
+
 export const listPosts = asyncHandler(async (req, res) => {
   const { page, limit, offset } = getPagination(req.query);
   const filters = {};
@@ -91,7 +99,7 @@ const assertPostOwner = async (req) => {
 
 export const updatePost = asyncHandler(async (req, res) => {
   await assertPostOwner(req);
-  sendSuccess(res, await TutorPost.update(req.params.id, req.body), "Tutor post updated");
+  sendSuccess(res, await TutorPost.update(req.params.id, pickEditablePost(req.body)), "Tutor post updated");
 });
 
 export const deletePost = asyncHandler(async (req, res) => {

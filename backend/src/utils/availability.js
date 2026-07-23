@@ -10,7 +10,8 @@ export const DAY_TOKENS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
  * stray value never breaks a search or a profile save.
  */
 export const parseDays = (value) => {
-  const raw = Array.isArray(value) ? value : String(value ?? "").split(",");
+  const raw = (Array.isArray(value) ? value : [value])
+    .flatMap((item) => String(item ?? "").split(","));
   const valid = new Set(
     raw.map((item) => String(item).trim().toLowerCase()).filter((item) => DAY_TOKENS.includes(item)),
   );

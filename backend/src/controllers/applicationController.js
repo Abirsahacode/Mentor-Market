@@ -39,27 +39,65 @@ export const createApplication = asyncHandler(async (req, res) => {
 });
 
 export const updateApplicationStatus = asyncHandler(async (req, res) => {
-  if (!['accepted', 'rejected'].includes(req.body.status)) {
+  if (!["accepted", "rejected"].includes(req.body.status)) {
     throw new ApiError(422, "invalid_status", "Status must be accepted or rejected");
-  }
-  const application = await Application.findById(req.params.id);
-  if (!application) throw new ApiError(404, "application_not_found", "Application was not found");
-  if (application.status !== "pending") {
-    throw new ApiError(409, "application_already_decided", "This application has already been decided");
-  }
-  const request = await StudentRequest.findById(application.student_request_id);
-  if (req.user.role !== "admin" && request.student_id !== req.user.id) {
-    throw new ApiError(403, "forbidden", "Only the request owner can decide this application");
   }
 
   let booking = null;
+  let application;
+  let request;
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    await connection.query("UPDATE applications SET status = ? WHERE id = ?", [req.body.status, application.id]);
+
+    // Lock the parent request before the individual proposal. Every decision
+    // for the same request then takes locks in the same order, preventing two
+    // concurrent accepts from hiring different tutors.
+    const [[applicationSnapshot]] = await connection.query(
+      "SELECT * FROM applications WHERE id = ? LIMIT 1",
+      [req.params.id],
+    );
+    if (!applicationSnapshot) throw new ApiError(404, "application_not_found", "Application was not found");
+
+    [[request]] = await connection.query(
+      "SELECT * FROM student_requests WHERE id = ? FOR UPDATE",
+      [applicationSnapshot.student_request_id],
+    );
+    [[application]] = await connection.query(
+      "SELECT * FROM applications WHERE id = ? FOR UPDATE",
+      [req.params.id],
+    );
+    if (!request || !application) throw new ApiError(404, "application_not_found", "Application was not found");
+    if (application.status !== "pending") {
+      throw new ApiError(409, "application_already_decided", "This application has already been decided");
+    }
+    if (req.user.role !== "admin" && request.student_id !== req.user.id) {
+      throw new ApiError(403, "forbidden", "Only the request owner can decide this application");
+    }
+    if (req.body.status === "accepted" && request.status !== "open") {
+      throw new ApiError(409, "request_not_open", "This tutor request has already been filled or closed");
+    }
+
+    const [decision] = await connection.query(
+      "UPDATE applications SET status = ? WHERE id = ? AND status = 'pending'",
+      [req.body.status, application.id],
+    );
+    if (decision.affectedRows !== 1) {
+      throw new ApiError(409, "application_already_decided", "This application has already been decided");
+    }
+
     if (req.body.status === "accepted") {
-      await connection.query("UPDATE applications SET status = 'rejected' WHERE student_request_id = ? AND id <> ?", [request.id, application.id]);
-      await connection.query("UPDATE student_requests SET status = 'hired' WHERE id = ?", [request.id]);
+      await connection.query(
+        "UPDATE applications SET status = 'rejected' WHERE student_request_id = ? AND id <> ? AND status = 'pending'",
+        [request.id, application.id],
+      );
+      const [requestUpdate] = await connection.query(
+        "UPDATE student_requests SET status = 'hired' WHERE id = ? AND status = 'open'",
+        [request.id],
+      );
+      if (requestUpdate.affectedRows !== 1) {
+        throw new ApiError(409, "request_not_open", "This tutor request has already been filled or closed");
+      }
 
       // Accepting a proposal is a commitment to a class, so the booking that
       // both dashboards rely on is created right here instead of leaving the
@@ -90,7 +128,12 @@ export const updateApplicationStatus = asyncHandler(async (req, res) => {
   }
   await notify(application.tutor_id, `Application ${req.body.status}`, `Your proposal for ${request.subject} was ${req.body.status}.`, `application_${req.body.status}`);
   if (booking) {
-    await notify(request.student_id, "Class booking created", `Your accepted request with ${request.subject} was scheduled for ${booking.class_date} at ${booking.class_time.slice(0, 5)}. Review or adjust it from your bookings page.`, "new_booking");
+    await notify(
+      request.student_id,
+      "Class booking created",
+      `Your accepted request with ${request.subject} was scheduled for ${String(booking.class_date).slice(0, 10)} at ${String(booking.class_time).slice(0, 5)}. Review or adjust it from your bookings page.`,
+      "new_booking",
+    );
   }
   sendSuccess(res, { ...(await Application.findById(application.id)), booking }, `Application ${req.body.status}`);
 });

@@ -38,3 +38,30 @@ test("course engagement routes require authentication", async () => {
   const response = await request(app).get("/api/course-engagement/saved").expect(401);
   assert.equal(response.body.error.code, "authentication_required");
 });
+
+test("booking availability is public while validating the tutor input", async () => {
+  const response = await request(app).get("/api/bookings/availability").expect(422);
+  assert.equal(response.body.error.code, "invalid_tutor");
+});
+
+test("non-availability booking routes remain protected", async () => {
+  const response = await request(app).get("/api/bookings").expect(401);
+  assert.equal(response.body.error.code, "authentication_required");
+});
+
+test("booking availability rejects invalid and oversized date ranges before querying the database", async () => {
+  const invalid = await request(app)
+    .get("/api/bookings/availability?tutor_id=1&from_date=2099-02-30")
+    .expect(422);
+  assert.equal(invalid.body.error.code, "invalid_date_range");
+
+  const reversed = await request(app)
+    .get("/api/bookings/availability?tutor_id=1&from_date=2099-02-02&to_date=2099-02-01")
+    .expect(422);
+  assert.equal(reversed.body.error.code, "invalid_date_range");
+
+  const oversized = await request(app)
+    .get("/api/bookings/availability?tutor_id=1&from_date=2099-01-01&to_date=2099-02-01")
+    .expect(422);
+  assert.equal(oversized.body.error.code, "availability_range_too_large");
+});

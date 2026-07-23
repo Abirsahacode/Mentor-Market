@@ -8,21 +8,21 @@ INSERT INTO users (id, full_name, email, password_hash, role, phone, avatar_url,
   (2, 'Ayesha Rahman', 'ayesha@mentormarket.test', @password_hash, 'student', '+8801700000002', NULL, TRUE),
   (3, 'Rafi Hasan', 'rafi@mentormarket.test', @password_hash, 'student', '+8801700000003', NULL, TRUE),
   (4, 'Nusrat Jahan', 'nusrat@mentormarket.test', @password_hash, 'student', '+8801700000004', NULL, TRUE),
-  (5, 'Farhan Ahmed', 'farhan@mentormarket.test', @password_hash, 'tutor', '+8801700000005', NULL, TRUE),
-  (6, 'Mehjabin Chowdhury', 'mehjabin@mentormarket.test', @password_hash, 'tutor', '+8801700000006', NULL, TRUE),
-  (7, 'Tanvir Hossain', 'tanvir@mentormarket.test', @password_hash, 'tutor', '+8801700000007', NULL, TRUE),
-  (8, 'Sadia Islam', 'sadia@mentormarket.test', @password_hash, 'tutor', '+8801700000008', NULL, TRUE);
+  (5, 'Farhan Ahmed', 'farhan@mentormarket.test', @password_hash, 'tutor', '+8801700000005', '/media/tutor-farhan.webp', TRUE),
+  (6, 'Mehjabin Chowdhury', 'mehjabin@mentormarket.test', @password_hash, 'tutor', '+8801700000006', '/media/tutor-mehjabin.webp', TRUE),
+  (7, 'Tanvir Hossain', 'tanvir@mentormarket.test', @password_hash, 'tutor', '+8801700000007', '/media/tutor-tanvir.webp', TRUE),
+  (8, 'Sadia Islam', 'sadia@mentormarket.test', @password_hash, 'tutor', '+8801700000008', '/media/tutor-sadia.webp', TRUE);
 
 INSERT INTO student_profiles (user_id, class_level, institution, location, subjects, learning_goals, bio) VALUES
   (2, 'Class 10', 'Viqarunnisa Noon School', 'Dhanmondi, Dhaka', JSON_ARRAY('Mathematics', 'Physics'), 'Prepare confidently for SSC exams.', 'Curious science student who learns best with examples.'),
   (3, 'A Level', 'Scholastica', 'Uttara, Dhaka', JSON_ARRAY('Chemistry', 'Biology'), 'Improve problem solving and exam technique.', 'Preparing for university admission.'),
   (4, 'Class 8', 'Sunbeams School', 'Gulshan, Dhaka', JSON_ARRAY('English', 'Mathematics'), 'Build strong fundamentals.', 'Enjoys interactive lessons and quizzes.');
 
-INSERT INTO tutor_profiles (user_id, qualifications, experience_years, subjects, teaching_mode, hourly_rate, location, availability, bio, profile_completion, average_rating, is_verified) VALUES
-  (5, 'BSc in Mathematics, University of Dhaka', 6, JSON_ARRAY('Mathematics', 'Physics'), 'both', 800, 'Dhanmondi, Dhaka', 'Sun-Thu, 5 PM-9 PM', 'I turn difficult math concepts into simple visual steps.', 100, 4.80, TRUE),
-  (6, 'MSc in Chemistry, BUET', 4, JSON_ARRAY('Chemistry', 'General Science'), 'online', 700, 'Mirpur, Dhaka', 'Fri-Sat, 10 AM-6 PM', 'Exam-focused lessons with practical examples and weekly feedback.', 90, 4.60, FALSE),
-  (7, 'BA and MA in English, Jahangirnagar University', 8, JSON_ARRAY('English', 'IELTS'), 'both', 1000, 'Uttara, Dhaka', 'Every day, 6 PM-10 PM', 'Friendly IELTS and English mentor focused on confident communication.', 100, 4.90, TRUE),
-  (8, 'BSc in CSE, North South University', 3, JSON_ARRAY('ICT', 'Programming', 'Mathematics'), 'online', 900, 'Bashundhara, Dhaka', 'Sat-Thu, 7 PM-10 PM', 'Project-based coding lessons for school and university students.', 85, 4.50, FALSE);
+INSERT INTO tutor_profiles (user_id, qualifications, experience_years, subjects, teaching_mode, hourly_rate, location, availability, available_days, bio, profile_completion, average_rating, is_verified) VALUES
+  (5, 'BSc in Mathematics, University of Dhaka', 6, JSON_ARRAY('Mathematics', 'Physics'), 'both', 800, 'Dhanmondi, Dhaka', 'Sun-Thu, 5 PM-9 PM', 'sun,mon,tue,wed,thu', 'I turn difficult math concepts into simple visual steps.', 100, 4.80, TRUE),
+  (6, 'MSc in Chemistry, BUET', 4, JSON_ARRAY('Chemistry', 'General Science'), 'online', 700, 'Mirpur, Dhaka', 'Fri-Sat, 10 AM-6 PM', 'fri,sat', 'Exam-focused lessons with practical examples and weekly feedback.', 90, 4.60, FALSE),
+  (7, 'BA and MA in English, Jahangirnagar University', 8, JSON_ARRAY('English', 'IELTS'), 'both', 1000, 'Uttara, Dhaka', 'Every day, 6 PM-10 PM', 'mon,tue,wed,thu,fri,sat,sun', 'Friendly IELTS and English mentor focused on confident communication.', 100, 4.90, TRUE),
+  (8, 'BSc in CSE, North South University', 3, JSON_ARRAY('ICT', 'Programming', 'Mathematics'), 'online', 900, 'Bashundhara, Dhaka', 'Sat-Thu, 7 PM-10 PM', 'sat,sun,mon,tue,wed,thu', 'Project-based coding lessons for school and university students.', 85, 4.50, FALSE);
 
 INSERT INTO tutor_posts (id, tutor_id, title, subject, level, price, teaching_mode, location, availability, has_trial, thumbnail_url, demo_video_url, description, status) VALUES
   (1, 5, 'SSC Mathematics Made Simple', 'Mathematics', 'Class 9-10 / SSC', 800, 'both', 'Dhanmondi, Dhaka', 'Sun-Thu evenings', TRUE, '/media/math-studio.svg', '/media/math-demo.mp4', 'Concept-first mathematics coaching with weekly practice tests and personal feedback.', 'active'),

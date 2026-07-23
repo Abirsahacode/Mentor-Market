@@ -12,8 +12,12 @@ export const searchTutors = asyncHandler(async (req, res) => {
   sendSuccess(res, rows, "Tutors loaded", 200, { page, limit, total, pages: Math.ceil(total / limit) });
 });
 
+export const listTutorSubjects = asyncHandler(async (_req, res) => {
+  sendSuccess(res, await TutorProfile.listSubjects(), "Tutor subjects loaded");
+});
+
 export const getTutor = asyncHandler(async (req, res) => {
-  const profile = await TutorProfile.findByUserId(req.params.id);
+  const profile = await TutorProfile.findPublicByUserId(req.params.id);
   if (!profile) throw new ApiError(404, "tutor_not_found", "Tutor profile was not found");
   const [posts] = await db.query("SELECT * FROM tutor_posts WHERE tutor_id = ? AND status = 'active' ORDER BY created_at DESC", [req.params.id]);
   const [reviews] = await db.query(
@@ -28,7 +32,35 @@ export const getProfile = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
-  const profile = await TutorProfile.upsert(req.user.id, req.body);
+  const connection = await db.getConnection();
+  let profile;
+  try {
+    await connection.beginTransaction();
+    const current = await TutorProfile.findByUserId(req.user.id, connection);
+    profile = await TutorProfile.upsert(req.user.id, req.body, connection);
+    const credentialChanged = ["qualifications", "experience_years"].some((field) => (
+      req.body[field] !== undefined && String(req.body[field] ?? "") !== String(current?.[field] ?? "")
+    ));
+    if (current?.is_verified && credentialChanged) {
+      await connection.query(
+        "UPDATE tutor_profiles SET is_verified = FALSE WHERE user_id = ?",
+        [req.user.id],
+      );
+      await connection.query(
+        `UPDATE verifications
+         SET status = 'pending', admin_feedback = NULL, reviewed_by = NULL, reviewed_at = NULL
+         WHERE tutor_id = ?`,
+        [req.user.id],
+      );
+      profile = await TutorProfile.findByUserId(req.user.id, connection);
+    }
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
   sendSuccess(res, profile, "Tutor profile updated");
 });
 
@@ -45,19 +77,40 @@ export const getEarnings = asyncHandler(async (req, res) => {
 
 export const requestWithdrawal = asyncHandler(async (req, res) => {
   const amount = Number(req.body.amount);
-  if (!amount || amount <= 0) throw new ApiError(422, "invalid_amount", "Withdrawal amount must be greater than zero");
-  const [[{ available }]] = await db.query(
-    `SELECT GREATEST(COALESCE((SELECT SUM(tutor_earning) FROM payments WHERE tutor_id = ? AND status = 'paid'), 0)
-      - COALESCE((SELECT SUM(amount) FROM withdrawal_requests WHERE tutor_id = ? AND status IN ('pending', 'approved', 'paid')), 0), 0) AS available`,
-    [req.user.id, req.user.id],
-  );
-  if (amount > available) throw new ApiError(409, "insufficient_earnings", "Withdrawal exceeds available earnings");
-  const withdrawal = await WithdrawalRequest.create({
-    tutor_id: req.user.id,
-    amount,
-    method: req.body.method,
-    account_details: req.body.account_details,
-    status: "pending",
-  });
+  if (!Number.isFinite(amount) || amount <= 0) throw new ApiError(422, "invalid_amount", "Withdrawal amount must be greater than zero");
+  if (!["bank", "bKash", "Nagad", "Rocket"].includes(req.body.method)) {
+    throw new ApiError(422, "invalid_withdrawal_method", "Choose a supported withdrawal method");
+  }
+  if (!String(req.body.account_details || "").trim()) {
+    throw new ApiError(422, "account_details_required", "Add the destination account details");
+  }
+
+  const connection = await db.getConnection();
+  let withdrawal;
+  try {
+    await connection.beginTransaction();
+    // Lock one stable row per tutor so concurrent withdrawal requests cannot
+    // both spend the same available earnings.
+    await connection.query("SELECT id FROM users WHERE id = ? FOR UPDATE", [req.user.id]);
+    const [[{ available }]] = await connection.query(
+      `SELECT GREATEST(COALESCE((SELECT SUM(tutor_earning) FROM payments WHERE tutor_id = ? AND status = 'paid'), 0)
+        - COALESCE((SELECT SUM(amount) FROM withdrawal_requests WHERE tutor_id = ? AND status IN ('pending', 'approved', 'paid')), 0), 0) AS available`,
+      [req.user.id, req.user.id],
+    );
+    if (amount > available) throw new ApiError(409, "insufficient_earnings", "Withdrawal exceeds available earnings");
+    withdrawal = await WithdrawalRequest.create({
+      tutor_id: req.user.id,
+      amount,
+      method: req.body.method,
+      account_details: String(req.body.account_details).trim(),
+      status: "pending",
+    }, connection);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
   sendSuccess(res, withdrawal, "Withdrawal requested", 201);
 });

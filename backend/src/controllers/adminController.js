@@ -15,6 +15,7 @@ export const dashboard = asyncHandler(async (_req, res) => {
   const [[counts]] = await db.query(
     `SELECT (SELECT COUNT(*) FROM tutor_posts) AS total_tutor_posts,
       (SELECT COUNT(*) FROM student_requests) AS total_student_requests,
+      (SELECT COUNT(*) FROM applications) AS total_applications,
       (SELECT COUNT(*) FROM bookings) AS total_bookings,
       (SELECT COUNT(*) FROM payments) AS total_payments,
       (SELECT COALESCE(SUM(commission), 0) FROM payments WHERE status = 'paid') AS total_revenue,
@@ -47,7 +48,10 @@ export const listUsers = asyncHandler(async (req, res) => {
 
 export const updateUserStatus = asyncHandler(async (req, res) => {
   if (Number(req.params.id) === req.user.id) throw new ApiError(409, "cannot_suspend_self", "Administrators cannot suspend their own account");
-  await db.query("UPDATE users SET is_active = ? WHERE id = ?", [Boolean(req.body.is_active), req.params.id]);
+  if (typeof req.body.is_active !== "boolean") {
+    throw new ApiError(422, "invalid_active_status", "is_active must be true or false");
+  }
+  await db.query("UPDATE users SET is_active = ? WHERE id = ?", [req.body.is_active, req.params.id]);
   const [[user]] = await db.query("SELECT id, full_name, email, role, is_active FROM users WHERE id = ?", [req.params.id]);
   if (!user) throw new ApiError(404, "user_not_found", "User was not found");
   sendSuccess(res, user, user.is_active ? "User activated" : "User suspended");

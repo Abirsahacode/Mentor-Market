@@ -12,28 +12,28 @@ import UserAvatar from "./UserAvatar.jsx";
 
 export const workspaceNavigation = {
   student: [
-    { label: "Start here", items: [["discover", "Discover courses", Compass], ["dashboard", "Learning overview", LayoutDashboard], ["profile", "Learning profile", CircleUserRound]] },
+    { label: "Start here", items: [["discover", "Discover courses", Compass], ["dashboard", "Overview", LayoutDashboard], ["profile", "Learning profile", CircleUserRound]] },
     { label: "Find a mentor", items: [["tutors", "Browse tutors", Search], ["saved-courses", "Saved courses", Bookmark], ["saved-tutors", "Tutor shortlist", Heart], ["create-request", "Post a request", SquarePlus], ["requests", "My requests", FileStack], ["applications", "Applications", BriefcaseBusiness]] },
     { label: "My learning", items: [["bookings", "Classes", CalendarDays], ["messages", "Messages", MessageCircleMore], ["materials", "Study materials", BookOpenCheck], ["assignments", "Assignments", ClipboardCheck], ["quizzes", "Quizzes", ListChecks], ["progress", "Progress", BarChart3]] },
-    { label: "Account", items: [["payments", "Payments", Banknote], ["reviews", "Reviews", Star], ["reports", "Safety reports", ShieldAlert]] },
+    { label: "Your account", items: [["payments", "Payments", Banknote], ["reviews", "Reviews", Star], ["reports", "Safety reports", ShieldAlert]] },
   ],
   tutor: [
     { label: "Teaching studio", items: [["dashboard", "Studio overview", LayoutDashboard], ["profile", "Public profile", CircleUserRound], ["create-service", "Create a course", SquarePlus]] },
     { label: "Marketplace", items: [["requests", "Student requests", Search], ["services", "My courses", FileStack], ["applications", "Applications", BriefcaseBusiness], ["bookings", "Class schedule", CalendarDays]] },
     { label: "Classroom", items: [["messages", "Messages", MessageCircleMore], ["materials", "Study materials", BookOpenCheck], ["assignments", "Assignments", NotebookPen], ["quizzes", "Quizzes", ListChecks]] },
-    { label: "Practice", items: [["earnings", "Earnings", Banknote], ["reviews", "Reviews", Star], ["verification", "Verification", BadgeCheck], ["reports", "Safety reports", ShieldAlert]] },
+    { label: "Your practice", items: [["earnings", "Earnings", Banknote], ["reviews", "Reviews", Star], ["verification", "Verification", BadgeCheck], ["reports", "Safety reports", ShieldAlert]] },
   ],
   admin: [
-    { label: "Control room", items: [["dashboard", "Marketplace pulse", LayoutDashboard], ["users", "All users", UsersRound], ["students", "Students", GraduationCap], ["tutors", "Tutors", UserRoundCheck]] },
+    { label: "Overview", items: [["dashboard", "Marketplace pulse", LayoutDashboard], ["users", "All users", UsersRound], ["students", "Students", GraduationCap], ["tutors", "Tutors", UserRoundCheck]] },
     { label: "Marketplace", items: [["tutor-posts", "Tutor posts", FileStack], ["student-requests", "Student requests", Search], ["applications", "Applications", BriefcaseBusiness], ["bookings", "Bookings", CalendarDays]] },
     { label: "Trust & finance", items: [["payments", "Payments", Banknote], ["reviews", "Reviews", Star], ["verifications", "Verification queue", BadgeCheck], ["reports", "Safety reports", ShieldAlert]] },
   ],
 };
 
 const roleMeta = {
-  student: { label: "Student space", detail: "Learn with momentum", Icon: GraduationCap },
-  tutor: { label: "Teaching studio", detail: "Grow your practice", Icon: Sparkles },
-  admin: { label: "Control room", detail: "Keep the market trusted", Icon: ShieldCheck },
+  student: { label: "Learning atelier", detail: "Build your next breakthrough", Icon: GraduationCap },
+  tutor: { label: "Teaching atelier", detail: "Grow a thoughtful practice", Icon: Sparkles },
+  admin: { label: "Marketplace atelier", detail: "Keep learning trusted", Icon: ShieldCheck },
 };
 
 export default function Sidebar({ role, open, onNavigate }) {
@@ -55,7 +55,7 @@ export default function Sidebar({ role, open, onNavigate }) {
       <div className="sidebar-brand-row">
         <Link className="sidebar-brand" to={homePath} onClick={onNavigate} aria-label="Mentor Market workspace home">
           <BrandMark size={34} />
-          <span><strong>Mentor Market</strong><small>Learn with proof</small></span>
+          <span><strong>Mentor Market</strong><small>Learning, made personal</small></span>
         </Link>
         <button className="sidebar-close" type="button" onClick={onNavigate} aria-label="Close navigation"><X size={19} /></button>
       </div>
@@ -75,6 +75,7 @@ export default function Sidebar({ role, open, onNavigate }) {
                 key={path}
                 to={`/${role}/${path}`}
                 onClick={onNavigate}
+                title={label}
                 className={({ isActive }) => navClass(path, isActive)}
               >
                 <span className="sidebar-nav-icon"><Icon size={18} strokeWidth={1.85} aria-hidden="true" /></span>

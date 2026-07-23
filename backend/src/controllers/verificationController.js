@@ -11,7 +11,6 @@ export const getVerification = asyncHandler(async (req, res) => {
 });
 
 export const submitVerification = asyncHandler(async (req, res) => {
-  const existing = await Verification.findOneBy("tutor_id", req.user.id);
   const payload = {
     tutor_id: req.user.id,
     certificate_name: req.body.certificate_name,
@@ -24,29 +23,76 @@ export const submitVerification = asyncHandler(async (req, res) => {
     reviewed_at: null,
     submitted_at: new Date(),
   };
-  const verification = existing
-    ? await Verification.update(existing.id, payload)
-    : await Verification.create(payload);
+  const connection = await db.getConnection();
+  let verification;
+  let existing;
+  try {
+    await connection.beginTransaction();
+    [[existing]] = await connection.query(
+      "SELECT * FROM verifications WHERE tutor_id = ? FOR UPDATE",
+      [req.user.id],
+    );
+    verification = existing
+      ? await Verification.update(existing.id, payload, connection)
+      : await Verification.create(payload, connection);
+    // Resubmitted evidence requires a fresh admin decision; never leave a
+    // stale verified badge visible while the new evidence is pending.
+    await connection.query(
+      "UPDATE tutor_profiles SET is_verified = FALSE WHERE user_id = ?",
+      [req.user.id],
+    );
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
   sendSuccess(res, verification, "Verification submitted", existing ? 200 : 201);
 });
 
 export const listVerifications = asyncHandler(async (req, res) => {
-  const filters = req.query.status ? { status: req.query.status } : {};
-  const { rows } = await Verification.findAll({ filters, limit: 100 });
+  const values = [];
+  const where = req.query.status ? "WHERE v.status = ?" : "";
+  if (req.query.status) values.push(req.query.status);
+  const [rows] = await db.query(
+    `SELECT v.*, u.full_name AS tutor_name, u.email AS tutor_email, u.avatar_url AS tutor_avatar_url
+     FROM verifications v JOIN users u ON u.id = v.tutor_id
+     ${where} ORDER BY v.submitted_at DESC, v.created_at DESC LIMIT 100`,
+    values,
+  );
   sendSuccess(res, rows, "Verifications loaded");
 });
 
 export const decideVerification = asyncHandler(async (req, res) => {
   if (!["verified", "rejected"].includes(req.body.status)) throw new ApiError(422, "invalid_status", "Status must be verified or rejected");
-  const verification = await Verification.findById(req.params.id);
-  if (!verification) throw new ApiError(404, "verification_not_found", "Verification was not found");
-  const updated = await Verification.update(verification.id, {
-    status: req.body.status,
-    admin_feedback: req.body.admin_feedback,
-    reviewed_by: req.user.id,
-    reviewed_at: new Date(),
-  });
-  await db.query("UPDATE tutor_profiles SET is_verified = ? WHERE user_id = ?", [req.body.status === "verified", verification.tutor_id]);
+  const connection = await db.getConnection();
+  let verification;
+  let updated;
+  try {
+    await connection.beginTransaction();
+    [[verification]] = await connection.query(
+      "SELECT * FROM verifications WHERE id = ? FOR UPDATE",
+      [req.params.id],
+    );
+    if (!verification) throw new ApiError(404, "verification_not_found", "Verification was not found");
+    updated = await Verification.update(verification.id, {
+      status: req.body.status,
+      admin_feedback: req.body.admin_feedback,
+      reviewed_by: req.user.id,
+      reviewed_at: new Date(),
+    }, connection);
+    await connection.query(
+      "UPDATE tutor_profiles SET is_verified = ? WHERE user_id = ?",
+      [req.body.status === "verified", verification.tutor_id],
+    );
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
   await notify(verification.tutor_id, `Verification ${req.body.status}`, req.body.admin_feedback || `Your mentor verification was ${req.body.status}.`, `verification_${req.body.status}`);
   sendSuccess(res, updated, `Tutor verification ${req.body.status}`);
 });

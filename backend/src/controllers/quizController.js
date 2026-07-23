@@ -10,15 +10,52 @@ const hideAnswers = (quiz) => ({
   questions: parseQuestions(quiz.questions).map(({ correctAnswer: _answer, ...question }) => question),
 });
 
+const studentHasTutorRelationship = async (studentId, tutorId) => {
+  const [[relationship]] = await db.query(
+    `SELECT id FROM bookings
+     WHERE student_id = ? AND tutor_id = ? AND status <> 'cancelled'
+     LIMIT 1`,
+    [studentId, tutorId],
+  );
+  return Boolean(relationship);
+};
+
+const assertQuizAccess = async (quiz, user) => {
+  const allowed = user.role === "admin"
+    || (user.role === "tutor" && quiz.tutor_id === user.id)
+    || (user.role === "student" && await studentHasTutorRelationship(user.id, quiz.tutor_id));
+  if (!allowed) throw new ApiError(404, "quiz_not_found", "Quiz was not found");
+};
+
 export const listQuizzes = asyncHandler(async (req, res) => {
+  if (req.user.role === "student") {
+    const values = [req.user.id];
+    const search = req.query.q
+      ? "AND (q.title LIKE ? OR q.subject LIKE ?)"
+      : "";
+    if (req.query.q) values.push(`%${req.query.q}%`, `%${req.query.q}%`);
+    const [rows] = await db.query(
+      `SELECT q.* FROM quizzes q
+       WHERE EXISTS (
+         SELECT 1 FROM bookings b
+         WHERE b.student_id = ? AND b.tutor_id = q.tutor_id AND b.status <> 'cancelled'
+       )
+       ${search}
+       ORDER BY q.created_at DESC LIMIT 100`,
+      values,
+    );
+    sendSuccess(res, rows.map(hideAnswers), "Quizzes loaded");
+    return;
+  }
   const filters = req.user.role === "tutor" ? { tutor_id: req.user.id } : {};
   const { rows } = await Quiz.findAll({ filters, q: req.query.q, limit: 100 });
-  sendSuccess(res, req.user.role === "student" ? rows.map(hideAnswers) : rows, "Quizzes loaded");
+  sendSuccess(res, rows, "Quizzes loaded");
 });
 
 export const getQuiz = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findById(req.params.id);
   if (!quiz) throw new ApiError(404, "quiz_not_found", "Quiz was not found");
+  await assertQuizAccess(quiz, req.user);
   sendSuccess(res, req.user.role === "student" ? hideAnswers(quiz) : quiz, "Quiz loaded");
 });
 
@@ -35,6 +72,7 @@ export const createQuiz = asyncHandler(async (req, res) => {
 export const attemptQuiz = asyncHandler(async (req, res) => {
   const quiz = await Quiz.findById(req.params.id);
   if (!quiz) throw new ApiError(404, "quiz_not_found", "Quiz was not found");
+  await assertQuizAccess(quiz, req.user);
   const questions = parseQuestions(quiz.questions);
   const answers = req.body.answers || [];
   const earned = questions.reduce((score, question, index) =>
@@ -68,4 +106,3 @@ export const deleteQuiz = asyncHandler(async (req, res) => {
   await Quiz.remove(quiz.id);
   res.status(204).send();
 });
-

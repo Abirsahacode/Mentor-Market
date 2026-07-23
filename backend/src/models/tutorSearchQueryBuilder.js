@@ -1,4 +1,4 @@
-import { DAY_TOKENS } from "../utils/availability.js";
+import { parseDays } from "../utils/availability.js";
 
 // Strip MySQL/MariaDB boolean-mode fulltext operators so user input can never
 // break AGAINST(...) syntax (e.g. a search for `+free -exam"` would otherwise
@@ -11,6 +11,28 @@ const ORDER_BY_OPTIONS = {
   experience: "tp.experience_years DESC, tp.is_verified DESC, u.full_name ASC",
   newest: "tp.created_at DESC, tp.is_verified DESC, u.full_name ASC",
   recommended: "tp.is_verified DESC, tp.average_rating DESC, tp.experience_years DESC",
+};
+
+export const parseListFilter = (value, { maxItems = 20, maxLength = 60 } = {}) => {
+  const rawValues = Array.isArray(value) ? value : [value];
+  const parsed = [];
+  const seen = new Set();
+
+  for (const rawValue of rawValues) {
+    if (!["string", "number"].includes(typeof rawValue)) continue;
+    const parts = String(rawValue).split(",", maxItems + 1);
+    for (const part of parts) {
+      const item = part.trim();
+      if (!item || item.length > maxLength) continue;
+      const key = item.toLocaleLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      parsed.push(item);
+      if (parsed.length >= maxItems) return parsed;
+    }
+  }
+
+  return parsed;
 };
 
 /**
@@ -44,10 +66,12 @@ export function buildTutorSearchQuery({
 } = {}) {
   const clauses = ["u.is_active = TRUE", "tp.profile_completion >= 60"];
   const values = [];
+  const normalizedSubjects = parseListFilter(subjects);
+  const normalizedDays = parseDays(days);
 
-  if (subjects.length) {
-    clauses.push(`(${subjects.map(() => "JSON_SEARCH(tp.subjects, 'one', ?) IS NOT NULL").join(" OR ")})`);
-    values.push(...subjects);
+  if (normalizedSubjects.length) {
+    clauses.push(`(${normalizedSubjects.map(() => "JSON_SEARCH(tp.subjects, 'one', ?) IS NOT NULL").join(" OR ")})`);
+    values.push(...normalizedSubjects);
   }
 
   const trimmedLocation = location.trim();
@@ -80,10 +104,9 @@ export function buildTutorSearchQuery({
     values.push(rating);
   }
 
-  const validDays = days.filter((day) => DAY_TOKENS.includes(day));
-  if (validDays.length) {
-    clauses.push(`(${validDays.map(() => "FIND_IN_SET(?, tp.available_days) > 0").join(" OR ")})`);
-    values.push(...validDays);
+  if (normalizedDays.length) {
+    clauses.push(`(${normalizedDays.map(() => "FIND_IN_SET(?, tp.available_days) > 0").join(" OR ")})`);
+    values.push(...normalizedDays);
   }
 
   // Split the free-text query into individual words and require every word

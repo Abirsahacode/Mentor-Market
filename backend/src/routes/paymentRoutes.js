@@ -6,9 +6,10 @@ import { validate } from "../middleware/validate.js";
 import { requiredFields } from "../utils/validators.js";
 
 const router = Router();
+export const paymentCreationRules = requiredFields("booking_id", "payment_method");
+
 router.use(protect);
 router.get("/", listPayments);
-router.post("/", allowRoles("student"), requiredFields("booking_id", "amount", "payment_method"), validate, createPayment);
+router.post("/", allowRoles("student"), paymentCreationRules, validate, createPayment);
 router.patch("/:id/pay", allowRoles("student", "admin"), markPaid);
 export default router;
-

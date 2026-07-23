@@ -5,6 +5,14 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { getPagination } from "../utils/pagination.js";
 import { sendSuccess } from "../utils/respond.js";
 
+const editableRequestFields = [
+  "subject", "class_level", "budget", "location", "teaching_mode", "preferred_time",
+  "required_experience", "description", "status",
+];
+const pickEditableRequest = (payload) => Object.fromEntries(
+  editableRequestFields.filter((field) => payload[field] !== undefined).map((field) => [field, payload[field]]),
+);
+
 export const listRequests = asyncHandler(async (req, res) => {
   const { page, limit, offset } = getPagination(req.query);
   const filters = {};
@@ -44,7 +52,7 @@ const assertRequestOwner = async (req) => {
 
 export const updateRequest = asyncHandler(async (req, res) => {
   await assertRequestOwner(req);
-  sendSuccess(res, await StudentRequest.update(req.params.id, req.body), "Tutor request updated");
+  sendSuccess(res, await StudentRequest.update(req.params.id, pickEditableRequest(req.body)), "Tutor request updated");
 });
 
 export const deleteRequest = asyncHandler(async (req, res) => {

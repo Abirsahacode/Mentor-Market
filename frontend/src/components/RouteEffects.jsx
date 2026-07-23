@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 const publicMeta = {
-  "/": ["Mentor Market · Learn with proof", "Watch teaching previews, compare mentor expertise and rates, and find a tutor who fits how you learn."],
+  "/": ["Mentor Market · Learning made personal", "Watch teaching previews, compare mentor expertise and rates, and find a tutor who fits how you learn."],
   "/tutors": ["Explore mentors · Mentor Market", "Search teaching previews and compare mentors by subject, format, location, rating, and price."],
   "/student-requests": ["Open student briefs · Mentor Market", "Browse current student learning needs and respond with a focused teaching proposal."],
   "/about": ["About · Mentor Market", "Learn why Mentor Market puts teaching style and real context at the center of tutor discovery."],

@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { notify } from "../utils/notifications.js";
 import { sendSuccess } from "../utils/respond.js";
+import { requireTeachingRelationship } from "../utils/teachingRelationship.js";
 
 export const listAssignments = asyncHandler(async (req, res) => {
   const field = req.user.role === "student" ? "student_id" : "tutor_id";
@@ -13,11 +14,15 @@ export const listAssignments = asyncHandler(async (req, res) => {
 });
 
 export const createAssignment = asyncHandler(async (req, res) => {
+  const relationship = await requireTeachingRelationship({
+    tutorId: req.user.id,
+    studentId: Number(req.body.student_id),
+  });
   const assignment = await Assignment.create({
     title: req.body.title,
     description: req.body.description,
     deadline: req.body.deadline,
-    student_id: req.body.student_id,
+    student_id: relationship.student_id,
     tutor_id: req.user.id,
     status: "pending",
   });

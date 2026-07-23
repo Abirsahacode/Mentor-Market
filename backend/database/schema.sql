@@ -45,6 +45,7 @@ CREATE TABLE tutor_profiles (
   hourly_rate DECIMAL(10,2) NOT NULL DEFAULT 0,
   location VARCHAR(150),
   availability VARCHAR(255),
+  available_days SET('mon','tue','wed','thu','fri','sat','sun'),
   bio TEXT,
   profile_completion TINYINT UNSIGNED NOT NULL DEFAULT 20,
   average_rating DECIMAL(3,2) NOT NULL DEFAULT 0,
@@ -52,7 +53,9 @@ CREATE TABLE tutor_profiles (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_tutor_profiles_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_tutor_profiles_search (teaching_mode, location, hourly_rate, average_rating)
+  INDEX idx_tutor_profiles_search (teaching_mode, location, hourly_rate, average_rating),
+  INDEX idx_tutor_profiles_recommended (profile_completion, is_verified, average_rating),
+  FULLTEXT INDEX ft_tutor_profiles_bio (qualifications, bio)
 ) ENGINE=InnoDB;
 
 CREATE TABLE tutor_posts (
@@ -74,7 +77,8 @@ CREATE TABLE tutor_posts (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_tutor_posts_users FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_tutor_posts_subject_status (subject, status),
-  INDEX idx_tutor_posts_tutor (tutor_id)
+  INDEX idx_tutor_posts_tutor (tutor_id),
+  FULLTEXT INDEX ft_tutor_posts_text (title, subject, description)
 ) ENGINE=InnoDB;
 
 CREATE TABLE student_requests (
@@ -131,6 +135,7 @@ CREATE TABLE bookings (
   CONSTRAINT fk_bookings_tutors FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE RESTRICT,
   CONSTRAINT fk_bookings_posts FOREIGN KEY (tutor_post_id) REFERENCES tutor_posts(id) ON DELETE SET NULL,
   CONSTRAINT fk_bookings_requests FOREIGN KEY (student_request_id) REFERENCES student_requests(id) ON DELETE SET NULL,
+  UNIQUE INDEX uq_bookings_student_request (student_request_id),
   INDEX idx_bookings_student_date (student_id, class_date),
   INDEX idx_bookings_tutor_date (tutor_id, class_date)
 ) ENGINE=InnoDB;

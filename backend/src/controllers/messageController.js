@@ -20,12 +20,24 @@ export const listConversations = asyncHandler(async (req, res) => {
 export const getConversation = asyncHandler(async (req, res) => {
   const otherId = Number(req.params.userId);
   const [rows] = await db.query(
-    `SELECT m.*, s.full_name AS sender_name FROM messages m JOIN users s ON s.id = m.sender_id
-     WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
-     ORDER BY m.created_at ASC LIMIT 200`,
+    `SELECT recent.* FROM (
+       SELECT m.*, s.full_name AS sender_name
+       FROM messages m JOIN users s ON s.id = m.sender_id
+       WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+       ORDER BY m.created_at DESC, m.id DESC LIMIT 200
+     ) recent
+     ORDER BY recent.created_at ASC, recent.id ASC`,
     [req.user.id, otherId, otherId, req.user.id],
   );
-  await db.query("UPDATE messages SET is_read = TRUE WHERE sender_id = ? AND receiver_id = ?", [otherId, req.user.id]);
+  const deliveredUnreadIds = rows
+    .filter((message) => message.sender_id === otherId && message.receiver_id === req.user.id && !message.is_read)
+    .map((message) => message.id);
+  if (deliveredUnreadIds.length) {
+    await db.query(
+      `UPDATE messages SET is_read = TRUE WHERE receiver_id = ? AND id IN (${deliveredUnreadIds.map(() => "?").join(",")})`,
+      [req.user.id, ...deliveredUnreadIds],
+    );
+  }
   sendSuccess(res, rows, "Conversation loaded");
 });
 

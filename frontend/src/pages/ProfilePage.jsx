@@ -21,17 +21,27 @@ const tutorFields = [
 // Mirrors backend/src/utils/availability.js so the picker can only ever
 // produce values the search filter (and the database SET column) accept.
 const dayTokens = [["mon", "Mon"], ["tue", "Tue"], ["wed", "Wed"], ["thu", "Thu"], ["fri", "Fri"], ["sat", "Sat"], ["sun", "Sun"]];
+const toProfileForm = (profile = {}) => ({
+  ...profile,
+  subjects: Array.isArray(profile.subjects)
+    ? profile.subjects.join(", ")
+    : (() => {
+      try { return JSON.parse(profile.subjects || "[]").join(", "); }
+      catch { return profile.subjects || ""; }
+    })(),
+});
 
 export default function ProfilePage({ role }) {
   const endpoint = role === "student" ? "/students/profile" : "/tutors/profile";
-  const { data, loading, error } = useApi(endpoint, null);
+  const { data, loading, error, reload } = useApi(endpoint, null);
   const { user } = useAuth();
   const [form, setForm] = useState({});
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (data) {
       const profile = role === "student" ? data.profile || {} : data;
-      setForm({ ...profile, subjects: Array.isArray(profile.subjects) ? profile.subjects.join(", ") : (() => { try { return JSON.parse(profile.subjects || "[]").join(", "); } catch { return profile.subjects || ""; } })() });
+      setForm(toProfileForm(profile));
     }
   }, [data, role]);
   const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -42,11 +52,16 @@ export default function ProfilePage({ role }) {
     return { ...current, available_days: dayTokens.map(([value]) => value).filter((value) => active.has(value)).join(",") };
   });
   const submit = async (event) => {
-    event.preventDefault(); setMessage("");
-    try { await api.put(endpoint, { ...form, subjects: form.subjects?.split(",").map((item) => item.trim()).filter(Boolean) }); setMessage("Profile saved successfully."); }
+    event.preventDefault(); setMessage(""); setSaving(true);
+    try {
+      const response = await api.put(endpoint, { ...form, subjects: form.subjects?.split(",").map((item) => item.trim()).filter(Boolean) });
+      setForm(toProfileForm(response.data.data));
+      setMessage("Profile saved successfully.");
+    }
     catch (requestError) { setMessage(getErrorMessage(requestError)); }
+    finally { setSaving(false); }
   };
   const fields = role === "student" ? studentFields : tutorFields;
   const completion = role === "tutor" ? Number(form.profile_completion || 20) : Math.round((fields.filter(([name]) => String(form[name] || "").trim()).length / fields.length) * 100);
-  return <section className="profile-studio-page"><PageHeader eyebrow="Identity studio" title="Make the introduction feel human" description="A clear, specific profile helps the right learning relationship start with confidence." />{loading ? <LoadingSpinner /> : <div className="profile-studio-grid"><aside className="profile-studio-aside"><div className="profile-studio-portrait"><UserAvatar name={user.full_name} image={user.avatar_url} size="profile" /><span>{role === "tutor" ? <BadgeCheck size={15} /> : <Sparkles size={15} />} {role === "tutor" ? "Mentor profile" : "Student profile"}</span></div><h2>{user.full_name}</h2><p>{user.email}</p><div className="profile-completion"><div><span>Profile strength</span><strong>{completion}%</strong></div><i><b style={{ width: `${Math.min(completion, 100)}%` }} /></i></div><div className="profile-studio-notes"><span><Check size={15} /> Use details someone can respond to</span><span><MapPin size={15} /> Keep location and mode current</span><span><BookOpen size={15} /> Be specific about subjects and goals</span></div></aside><form className="panel profile-form" onSubmit={submit}><div className="profile-form-heading"><span className="panel-eyebrow">Public information</span><h2>{role === "student" ? "Your learning context" : "Your teaching practice"}</h2><p>{role === "student" ? "Help mentors understand where you are now and what progress looks like to you." : "Give students enough signal to understand your expertise, style, and availability."}</p></div><Alert>{error}</Alert><Alert type={message.includes("success") ? "success" : "error"}>{message}</Alert><div className="form-grid">{fields.map(([name, label, kind]) => <FormField key={name} name={name} label={label} value={form[name]} onChange={change} type={kind === "number" ? "number" : "text"} as={kind === "textarea" ? "textarea" : undefined} options={kind === "select" ? ["online", "offline", "both"] : undefined} />)}</div>{role === "tutor" && <label className="form-field day-picker-field"><span><Calendar size={14} /> Days you are usually available</span><div className="day-picker" role="group" aria-label="Available days">{dayTokens.map(([value, label]) => <button type="button" key={value} className={selectedDays.includes(value) ? "active" : ""} aria-pressed={selectedDays.includes(value)} onClick={() => toggleDay(value)}>{label}</button>)}</div></label>}<div className="form-actions"><button className="button">Save profile changes</button></div></form></div>}</section>;
+  return <section className="profile-studio-page"><PageHeader eyebrow="Identity studio" title="Make the introduction feel human" description="A clear, specific profile helps the right learning relationship start with confidence." />{loading ? <LoadingSpinner /> : error && !data ? <div className="panel"><Alert>{error}</Alert><button type="button" className="button button-ghost" onClick={reload}>Try loading again</button></div> : <div className="profile-studio-grid"><aside className="profile-studio-aside"><div className="profile-studio-portrait"><UserAvatar name={user.full_name} image={user.avatar_url} size="profile" /><span>{role === "tutor" ? <BadgeCheck size={15} /> : <Sparkles size={15} />} {role === "tutor" ? "Mentor profile" : "Student profile"}</span></div><h2>{user.full_name}</h2><p>{user.email}</p><div className="profile-completion"><div><span>Profile strength</span><strong>{completion}%</strong></div><i><b style={{ width: `${Math.min(completion, 100)}%` }} /></i></div><div className="profile-studio-notes"><span><Check size={15} /> Use details someone can respond to</span><span><MapPin size={15} /> Keep location and mode current</span><span><BookOpen size={15} /> Be specific about subjects and goals</span></div></aside><form className="panel profile-form" onSubmit={submit}><div className="profile-form-heading"><span className="panel-eyebrow">Public information</span><h2>{role === "student" ? "Your learning context" : "Your teaching practice"}</h2><p>{role === "student" ? "Help mentors understand where you are now and what progress looks like to you." : "Give students enough signal to understand your expertise, style, and availability."}</p></div><Alert>{error}</Alert><Alert type={message.includes("success") ? "success" : "error"}>{message}</Alert><div className="form-grid">{fields.map(([name, label, kind]) => <FormField key={name} name={name} label={label} value={form[name]} onChange={change} type={kind === "number" ? "number" : "text"} as={kind === "textarea" ? "textarea" : undefined} options={kind === "select" ? ["online", "offline", "both"] : undefined} />)}</div>{role === "tutor" && <label className="form-field day-picker-field"><span><Calendar size={14} /> Days you are usually available</span><div className="day-picker" role="group" aria-label="Available days">{dayTokens.map(([value, label]) => <button type="button" key={value} className={selectedDays.includes(value) ? "active" : ""} aria-pressed={selectedDays.includes(value)} onClick={() => toggleDay(value)}>{label}</button>)}</div></label>}<div className="form-actions"><button className="button" disabled={saving}>{saving ? "Saving…" : "Save profile changes"}</button></div></form></div>}</section>;
 }

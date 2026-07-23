@@ -22,14 +22,14 @@ export default class BaseModel {
     );
   }
 
-  async findById(id) {
-    const [rows] = await db.query(`SELECT * FROM \`${this.table}\` WHERE id = ? LIMIT 1`, [id]);
+  async findById(id, connection = db) {
+    const [rows] = await connection.query(`SELECT * FROM \`${this.table}\` WHERE id = ? LIMIT 1`, [id]);
     return rows[0] || null;
   }
 
-  async findOneBy(field, value) {
+  async findOneBy(field, value, connection = db) {
     if (!["id", ...this.fields].includes(field)) throw new Error(`Unsafe lookup field: ${field}`);
-    const [rows] = await db.query(
+    const [rows] = await connection.query(
       `SELECT * FROM \`${this.table}\` WHERE \`${field}\` = ? LIMIT 1`,
       [value],
     );
@@ -71,18 +71,18 @@ export default class BaseModel {
       `INSERT INTO \`${this.table}\` (${fields.map((field) => `\`${field}\``).join(", ")}) VALUES (${fields.map(() => "?").join(", ")})`,
       Object.values(data),
     );
-    return this.findById(result.insertId);
+    return this.findById(result.insertId, connection);
   }
 
   async update(id, payload, connection = db) {
     const data = this.pick(payload);
     const fields = Object.keys(data);
-    if (!fields.length) return this.findById(id);
+    if (!fields.length) return this.findById(id, connection);
     await connection.query(
       `UPDATE \`${this.table}\` SET ${fields.map((field) => `\`${field}\` = ?`).join(", ")} WHERE id = ?`,
       [...Object.values(data), id],
     );
-    return this.findById(id);
+    return this.findById(id, connection);
   }
 
   async remove(id) {
@@ -90,4 +90,3 @@ export default class BaseModel {
     return result.affectedRows > 0;
   }
 }
-

@@ -19,7 +19,9 @@ export const getProgress = asyncHandler(async (req, res) => {
   const [[classes]] = await db.query(
     `SELECT COUNT(*) AS total_classes, SUM(status = 'completed') AS completed_classes,
       ROUND(100 * SUM(status = 'completed') / NULLIF(COUNT(*), 0), 1) AS attendance_percentage
-     FROM bookings WHERE student_id = ? AND status <> 'cancelled'`, [studentId],
+     FROM bookings
+     WHERE student_id = ? AND status <> 'cancelled'
+       AND TIMESTAMP(class_date, class_time) <= CURRENT_TIMESTAMP`, [studentId],
   );
   const [[assignments]] = await db.query(
     `SELECT COUNT(*) AS total_assignments, SUM(status IN ('submitted', 'graded')) AS completed_assignments,
@@ -59,4 +61,3 @@ export const removeSavedTutor = asyncHandler(async (req, res) => {
   await SavedTutor.remove(req.user.id, req.params.tutorId);
   res.status(204).send();
 });
-

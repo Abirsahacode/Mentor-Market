@@ -1,4 +1,5 @@
 import { body } from "express-validator";
+import { DAY_TOKENS, parseDays } from "./availability.js";
 
 export const registerRules = [
   body("full_name").trim().isLength({ min: 2, max: 100 }).withMessage("must be 2-100 characters"),
@@ -20,6 +21,11 @@ const subjectsRules = (field) => [
   body(`${field}.*`).optional().isString().trim().isLength({ min: 1, max: 60 }).withMessage("must be 1-60 characters"),
 ];
 
+const availableDayTokens = (value) => (Array.isArray(value) ? value : [value])
+  .flatMap((item) => String(item ?? "").split(","))
+  .map((item) => item.trim().toLowerCase())
+  .filter(Boolean);
+
 export const studentProfileRules = [
   body("class_level").optional({ checkFalsy: true }).trim().isLength({ max: 80 }).withMessage("must be at most 80 characters"),
   body("institution").optional({ checkFalsy: true }).trim().isLength({ max: 150 }).withMessage("must be at most 150 characters"),
@@ -37,6 +43,9 @@ export const tutorProfileRules = [
   body("hourly_rate").optional({ checkFalsy: true }).isFloat({ min: 0, max: 100000 }).withMessage("must be between 0 and 100000"),
   body("location").optional({ checkFalsy: true }).trim().isLength({ max: 150 }).withMessage("must be at most 150 characters"),
   body("availability").optional({ checkFalsy: true }).trim().isLength({ max: 255 }).withMessage("must be at most 255 characters"),
+  body("available_days").optional({ checkFalsy: true })
+    .custom((value) => availableDayTokens(value).every((day) => DAY_TOKENS.includes(day)))
+    .withMessage(`must contain only ${DAY_TOKENS.join(", ")}`)
+    .customSanitizer((value) => parseDays(value).join(",")),
   body("bio").optional({ checkFalsy: true }).trim().isLength({ max: 2000 }).withMessage("must be at most 2000 characters"),
 ];
-

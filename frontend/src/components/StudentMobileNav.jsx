@@ -61,7 +61,7 @@ const quickDestinations = {
   ],
 };
 
-const workspaceNames = { student: "Student space", tutor: "Teaching studio", admin: "Control room" };
+const workspaceNames = { student: "Learning atelier", tutor: "Teaching atelier", admin: "Marketplace atelier" };
 
 export default function StudentMobileNav() {
   const { user } = useAuth();

@@ -1,11 +1,9 @@
 import {
-  BadgeCheck, CalendarDays, ChevronDown, CirclePlay, Filter, MapPin, RotateCcw, Search, SlidersHorizontal, Sparkles, X,
+  BadgeCheck, CalendarDays, ChevronDown, Filter, MapPin, RotateCcw, Search, SlidersHorizontal, X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import Alert from "../../components/Alert.jsx";
-import AmbientVideo from "../../components/AmbientVideo.jsx";
-import DemoVideo from "../../components/DemoVideo.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
 import LoadingSpinner from "../../components/LoadingSpinner.jsx";
 import Pagination from "../../components/Pagination.jsx";
@@ -82,7 +80,6 @@ export default function FindTutorsPage() {
   const results = data || [];
   const total = meta?.total ?? results.length;
   const pages = meta?.pages ?? 1;
-  const featured = results.find((tutor) => tutor.demo_video_url) || results[0];
   const changePage = (nextPage) => {
     updateParams({ page: String(nextPage) }, true);
     window.requestAnimationFrame(() => document.querySelector(".discovery-results")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" }));
@@ -118,24 +115,13 @@ export default function FindTutorsPage() {
     <header className="marketplace-header directory-header">
       <div className="container marketplace-header-grid">
         <div className="marketplace-header-copy">
-          <span className="page-index"><i /> Mentor directory · Bangladesh</span>
-          <h1>Find how you<br /><em>learn best.</em></h1>
-          <p>Preview real teaching styles, then compare expertise, availability, reviews, and rate.</p>
+          <span className="page-index"><i /> Independent mentors across Bangladesh</span>
+          <h1>Find a teaching style<br /><em>that feels right.</em></h1>
+          <p>Search by subject or mentor, then refine the details that matter to your schedule and budget.</p>
           <form className="marketplace-search" onSubmit={(event) => { event.preventDefault(); document.querySelector(".discovery-results")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" }); }}>
             <Search size={19} /><input aria-label="Search mentors" name="q" value={filters.q} onChange={change} placeholder="Search a subject, mentor, or qualification" /><button type="submit">Search</button>
           </form>
           <div className="directory-quick-topics">{fallbackSubjects.slice(0, 4).map((subject) => <button className={selectedSubjects.includes(subject) ? "active" : ""} aria-pressed={selectedSubjects.includes(subject)} type="button" key={subject} onClick={() => toggleSubject(subject)}>{subject}</button>)}</div>
-        </div>
-        <div className="directory-feature">
-          {featured ? <>
-            <div className="directory-feature-media">
-              {featured.demo_video_url ? <AmbientVideo src={featured.demo_video_url} poster={featured.thumbnail_url} label={`${featured.full_name} mentor preview`} /> : <img src={featured.thumbnail_url || "/media/math-studio.svg"} alt="" />}
-              <span><i /> Teaching preview</span>
-              <DemoVideo src={featured.demo_video_url} poster={featured.thumbnail_url} title={`${featured.full_name} teaching preview`} variant="icon" />
-            </div>
-            <div className="directory-feature-caption"><div><small>Featured mentor</small><strong>{featured.full_name}</strong></div><Link to={`/tutors/${featured.user_id}`}>View profile</Link></div>
-          </> : <div className="directory-feature-placeholder"><CirclePlay size={30} /><span>Mentor previews load here</span></div>}
-          <div className="directory-feature-note"><Sparkles size={15} /><span><strong>A profile can tell you what.</strong> A preview helps you see how.</span></div>
         </div>
       </div>
     </header>
@@ -178,7 +164,7 @@ export default function FindTutorsPage() {
         <button type="button" className="filter-clear" onClick={clear}><RotateCcw size={14} /> Reset all filters</button>
       </aside>
       <div className="discovery-results">
-        <div className="results-toolbar"><div><span className="results-kicker">Curated marketplace</span><strong>{loading ? "Finding mentors…" : `${total} mentor${total === 1 ? "" : "s"} to explore`}</strong><p>Each card includes a teaching preview when one is available.</p></div><label>Sort by <select value={sort} onChange={(event) => updateParams({ sort: event.target.value === "recommended" ? "" : event.target.value })}><option value="recommended">Recommended</option><option value="rating">Highest rated</option><option value="price">Lowest rate</option><option value="experience">Most experienced</option><option value="newest">Newest mentors</option></select></label></div>
+        <div className="results-toolbar"><div><span className="results-kicker">Mentor directory</span><strong>{loading ? "Finding mentors…" : `${total} mentor${total === 1 ? "" : "s"} to explore`}</strong><p>Open a profile to see classes, availability, reviews, and a teaching preview.</p></div><label>Sort by <select value={sort} onChange={(event) => updateParams({ sort: event.target.value === "recommended" ? "" : event.target.value })}><option value="recommended">Recommended</option><option value="rating">Highest rated</option><option value="price">Lowest rate</option><option value="experience">Most experienced</option><option value="newest">Newest mentors</option></select></label></div>
         {activeCount > 0 && <div className="active-filters" aria-label="Active filters">{Object.entries(filters).filter(([, value]) => value).map(([key, value]) => <button type="button" key={key} aria-label={`Remove ${key === "q" ? "search" : key.replace(/([A-Z])/g, " $1")} filter: ${value}`} onClick={() => updateParams({ [key]: "" })}><span>{key === "q" ? "Search" : key.replace(/([A-Z])/g, " $1")}</span>{value}<X size={12} /></button>)}</div>}
         <Alert>{error}</Alert>
         <div aria-live="polite" aria-busy={loading}>

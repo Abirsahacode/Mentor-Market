@@ -47,7 +47,9 @@ export default function CoursePin({ course, index = 0, saved = false, compared =
           if (!mediaRef.current?.contains(event.relatedTarget)) endPreview();
         }}
       >
-        <CourseArtwork subject={course.subject} />
+        {tutor.avatar_url
+          ? <img className="course-pin-portrait-image" src={tutor.avatar_url} alt={`${tutor.full_name}, ${course.subject} mentor`} />
+          : <CourseArtwork subject={course.subject} />}
         {course.demo_video_url && (
           <video
             ref={previewRef}

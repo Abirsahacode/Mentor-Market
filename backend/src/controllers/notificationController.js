@@ -1,3 +1,4 @@
+import db from "../config/db.js";
 import Notification from "../models/Notification.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -17,8 +18,9 @@ export const markRead = asyncHandler(async (req, res) => {
 });
 
 export const markAllRead = asyncHandler(async (req, res) => {
-  const { rows } = await Notification.findAll({ filters: { user_id: req.user.id, is_read: false }, limit: 100 });
-  await Promise.all(rows.map((notification) => Notification.update(notification.id, { is_read: true })));
-  sendSuccess(res, null, "All notifications marked read");
+  const [result] = await db.query(
+    "UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE",
+    [req.user.id],
+  );
+  sendSuccess(res, { updated: result.affectedRows }, "All notifications marked read");
 });
-

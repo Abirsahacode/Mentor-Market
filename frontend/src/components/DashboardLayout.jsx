@@ -22,7 +22,7 @@ const routeLabels = {
   verifications: "Verification queue",
 };
 
-const roleLabels = { student: "Student space", tutor: "Teaching studio", admin: "Control room" };
+const roleLabels = { student: "Learning atelier", tutor: "Teaching atelier", admin: "Marketplace atelier" };
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,6 +37,7 @@ export default function DashboardLayout() {
   const profilePath = role === "admin" ? "/admin/users" : `/${role}/profile`;
   const segment = location.pathname.split("/").filter(Boolean).at(-1);
   const currentLabel = /^\d+$/.test(segment || "") ? "Course details" : (routeLabels[segment] || "Workspace");
+  const isOverview = segment === "dashboard";
   const action = role === "student"
     ? { path: "/student/create-request", label: "Post a request", Icon: Plus }
     : role === "tutor"
@@ -101,7 +102,10 @@ export default function DashboardLayout() {
             aria-label={sidebarOpen ? "Close workspace navigation" : "Open workspace navigation"}
             aria-expanded={sidebarOpen}
           ><Menu size={20} /></button>
-          <div className="dashboard-mobile-brand"><Brand compact /></div>
+          <div className="dashboard-mobile-context">
+            <div className="dashboard-mobile-brand"><Brand compact /></div>
+            <span className="dashboard-mobile-page">{currentLabel}</span>
+          </div>
           <div className="workspace-breadcrumb" aria-label="Current location">
             <span>{roleLabels[role]}</span><ChevronRight size={13} aria-hidden="true" /><strong>{currentLabel}</strong>
           </div>
@@ -112,7 +116,7 @@ export default function DashboardLayout() {
         </button>
 
         <div className="dashboard-user">
-          <Link className="topbar-magic" to={action.path}><action.Icon size={16} aria-hidden="true" /><span>{action.label}</span></Link>
+          {!isOverview && <Link className="topbar-magic" to={action.path} aria-label={action.label}><action.Icon size={16} aria-hidden="true" /><span>{action.label}</span></Link>}
           <Link className="topbar-icon topbar-notifications" to={`/${role}/notifications`} aria-label="Open notifications"><Bell size={19} /><i aria-hidden="true" /></Link>
           <div className="topbar-account-wrap" ref={accountRef}>
             <button className="topbar-profile" type="button" onClick={() => setAccountOpen((current) => !current)} aria-haspopup="menu" aria-expanded={accountOpen}>

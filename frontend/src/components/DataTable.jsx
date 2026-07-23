@@ -1,6 +1,6 @@
 const display = (value) => {
   if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "boolean" || value === 0 || value === 1) return value === true || value === 1 ? "Yes" : "No";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "object") return JSON.stringify(value);
   const text = String(value);
   return text.length > 65 ? `${text.slice(0, 62)}…` : text;
