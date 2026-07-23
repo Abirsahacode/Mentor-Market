@@ -1,9 +1,11 @@
 import db from "../config/db.js";
 import Application from "../models/Application.js";
+import Booking from "../models/Booking.js";
 import StudentRequest from "../models/StudentRequest.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { notify } from "../utils/notifications.js";
+import { parsePreferredTime } from "../utils/scheduling.js";
 import { sendSuccess } from "../utils/respond.js";
 
 export const listApplications = asyncHandler(async (req, res) => {
@@ -42,11 +44,15 @@ export const updateApplicationStatus = asyncHandler(async (req, res) => {
   }
   const application = await Application.findById(req.params.id);
   if (!application) throw new ApiError(404, "application_not_found", "Application was not found");
+  if (application.status !== "pending") {
+    throw new ApiError(409, "application_already_decided", "This application has already been decided");
+  }
   const request = await StudentRequest.findById(application.student_request_id);
   if (req.user.role !== "admin" && request.student_id !== req.user.id) {
     throw new ApiError(403, "forbidden", "Only the request owner can decide this application");
   }
 
+  let booking = null;
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
@@ -54,6 +60,26 @@ export const updateApplicationStatus = asyncHandler(async (req, res) => {
     if (req.body.status === "accepted") {
       await connection.query("UPDATE applications SET status = 'rejected' WHERE student_request_id = ? AND id <> ?", [request.id, application.id]);
       await connection.query("UPDATE student_requests SET status = 'hired' WHERE id = ?", [request.id]);
+
+      // Accepting a proposal is a commitment to a class, so the booking that
+      // both dashboards rely on is created right here instead of leaving the
+      // student to separately re-book the same tutor from scratch. The exact
+      // date/time is a best-effort read of the tutor's proposed availability;
+      // either side can still adjust it with PATCH /bookings/:id.
+      const { class_date, class_time } = parsePreferredTime(application.available_time || request.preferred_time);
+      const mode = request.teaching_mode === "both" ? "online" : request.teaching_mode;
+      booking = await Booking.create({
+        student_id: request.student_id,
+        tutor_id: application.tutor_id,
+        student_request_id: request.id,
+        class_type: "one-time",
+        class_date,
+        class_time,
+        duration_minutes: 60,
+        mode,
+        meeting_link_or_location: `Proposed time from application: ${application.available_time}`,
+        status: "pending",
+      }, connection);
     }
     await connection.commit();
   } catch (error) {
@@ -63,7 +89,10 @@ export const updateApplicationStatus = asyncHandler(async (req, res) => {
     connection.release();
   }
   await notify(application.tutor_id, `Application ${req.body.status}`, `Your proposal for ${request.subject} was ${req.body.status}.`, `application_${req.body.status}`);
-  sendSuccess(res, await Application.findById(application.id), `Application ${req.body.status}`);
+  if (booking) {
+    await notify(request.student_id, "Class booking created", `Your accepted request with ${request.subject} was scheduled for ${booking.class_date} at ${booking.class_time.slice(0, 5)}. Review or adjust it from your bookings page.`, "new_booking");
+  }
+  sendSuccess(res, { ...(await Application.findById(application.id)), booking }, `Application ${req.body.status}`);
 });
 
 export const deleteApplication = asyncHandler(async (req, res) => {

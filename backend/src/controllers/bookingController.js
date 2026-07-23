@@ -65,6 +65,16 @@ export const createBooking = asyncHandler(async (req, res) => {
   if (req.body.class_type === "trial" && !post?.has_trial) {
     throw new ApiError(422, "trial_unavailable", "The selected class does not offer a trial");
   }
+  if (req.body.class_type === "trial") {
+    const [[existingTrial]] = await db.query(
+      `SELECT id FROM bookings WHERE student_id = ? AND tutor_id = ? AND class_type = 'trial'
+       AND status <> 'cancelled' LIMIT 1`,
+      [req.user.id, tutorId],
+    );
+    if (existingTrial) {
+      throw new ApiError(409, "trial_already_used", "You already have a trial class with this tutor. Book a regular class instead.");
+    }
+  }
 
   const [[duplicate]] = await db.query(
     `SELECT id FROM bookings WHERE student_id = ? AND tutor_id = ? AND class_date = ? AND class_time = ?
