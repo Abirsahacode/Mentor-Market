@@ -4,6 +4,9 @@ import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { notify } from "../utils/notifications.js";
 import { sendSuccess } from "../utils/respond.js";
+import { generateAvailabilitySlots } from "../utils/availabilityCalendar.js";
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 export const listBookings = asyncHandler(async (req, res) => {
   const clauses = [];
@@ -27,10 +30,35 @@ export const listBookings = asyncHandler(async (req, res) => {
   sendSuccess(res, rows, "Bookings loaded");
 });
 
+export const listAvailability = asyncHandler(async (req, res) => {
+  const tutorId = Number(req.query.tutor_id);
+  if (!tutorId) throw new ApiError(422, "invalid_tutor", "Choose a tutor before loading availability");
+  const fromDate = req.query.from_date || today();
+  const toDate = req.query.to_date || fromDate;
+
+  const [[tutor]] = await db.query(
+    `SELECT u.id, tp.availability, tp.teaching_mode FROM users u
+     LEFT JOIN tutor_profiles tp ON tp.user_id = u.id
+     WHERE u.id = ? AND u.role = 'tutor' AND u.is_active = TRUE`,
+    [tutorId],
+  );
+  if (!tutor) throw new ApiError(404, "tutor_not_found", "An active tutor was not found");
+
+  const [existingBookings] = await db.query(
+    `SELECT class_date, class_time FROM bookings
+     WHERE tutor_id = ? AND class_date BETWEEN ? AND ? AND status IN ('pending', 'confirmed', 'rescheduled')`,
+    [tutorId, fromDate, toDate],
+  );
+
+  const availabilityText = tutor.availability || "";
+  const slots = generateAvailabilitySlots({ availabilityText, fromDate, toDate, existingBookings });
+  sendSuccess(res, slots, "Availability loaded");
+});
+
 export const createBooking = asyncHandler(async (req, res) => {
   const tutorId = Number(req.body.tutor_id);
   const [[tutor]] = await db.query(
-    `SELECT u.id, tp.teaching_mode FROM users u
+    `SELECT u.id, tp.teaching_mode, tp.availability FROM users u
      LEFT JOIN tutor_profiles tp ON tp.user_id = u.id
      WHERE u.id = ? AND u.role = 'tutor' AND u.is_active = TRUE`,
     [tutorId],
@@ -51,7 +79,7 @@ export const createBooking = asyncHandler(async (req, res) => {
   let post = null;
   if (req.body.tutor_post_id) {
     [[post]] = await db.query(
-      "SELECT id, tutor_id, teaching_mode, has_trial, status FROM tutor_posts WHERE id = ?",
+      "SELECT id, tutor_id, teaching_mode, has_trial, status, availability FROM tutor_posts WHERE id = ?",
       [req.body.tutor_post_id],
     );
     if (!post || post.tutor_id !== tutorId || post.status !== "active") {
@@ -61,6 +89,19 @@ export const createBooking = asyncHandler(async (req, res) => {
   const supportedMode = post?.teaching_mode || tutor.teaching_mode;
   if (supportedMode && supportedMode !== "both" && req.body.mode !== supportedMode) {
     throw new ApiError(422, "unsupported_mode", `This class is available ${supportedMode} only`);
+  }
+
+  const availabilityText = post?.availability || tutor.availability || "";
+  const [existingBookings] = await db.query(
+    `SELECT class_date, class_time FROM bookings
+     WHERE tutor_id = ? AND class_date = ? AND status IN ('pending', 'confirmed', 'rescheduled')`,
+    [tutorId, req.body.class_date],
+  );
+  const normalizedTime = req.body.class_time?.slice(0, 5);
+  const availabilitySlots = generateAvailabilitySlots({ availabilityText, fromDate: req.body.class_date, toDate: req.body.class_date, existingBookings });
+  const slotIsAvailable = !availabilityText || availabilitySlots.some((slot) => slot.date === req.body.class_date && slot.time === normalizedTime);
+  if (!slotIsAvailable) {
+    throw new ApiError(422, "slot_unavailable", "Choose one of the tutor's available calendar slots");
   }
   if (req.body.class_type === "trial" && !post?.has_trial) {
     throw new ApiError(422, "trial_unavailable", "The selected class does not offer a trial");

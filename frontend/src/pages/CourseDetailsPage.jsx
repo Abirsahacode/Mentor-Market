@@ -89,6 +89,8 @@ export default function CourseDetailsPage() {
   const [saving, setSaving] = useState(false);
   const [bookingStatus, setBookingStatus] = useState({ type: "", message: "" });
   const [booking, setBooking] = useState({ class_type: "trial", class_date: "", class_time: "", mode: "online", duration_minutes: 60 });
+  const [availabilitySlots, setAvailabilitySlots] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -148,6 +150,31 @@ export default function CourseDetailsPage() {
   const rating = Number(tutor.average_rating || course?.average_rating || 0);
   const blueprint = useMemo(() => findBlueprint(course?.subject), [course?.subject]);
   const classModes = course?.teaching_mode === "both" ? ["online", "offline"] : [course?.teaching_mode || "online"];
+  const selectedDateSlots = availabilitySlots.filter((slot) => slot.date === booking.class_date);
+
+  const loadAvailability = async (date) => {
+    if (!course?.tutor_id && !tutor.id || !date) {
+      setAvailabilitySlots([]);
+      return;
+    }
+    setAvailabilityLoading(true);
+    try {
+      const response = await api.get("/bookings/availability", { params: { tutor_id: Number(course?.tutor_id || tutor.id), from_date: date, to_date: date } });
+      setAvailabilitySlots(response.data.data || []);
+    } catch {
+      setAvailabilitySlots([]);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!booking.class_date) {
+      setAvailabilitySlots([]);
+      return;
+    }
+    loadAvailability(booking.class_date);
+  }, [booking.class_date, course?.tutor_id, tutor.id]);
 
   const togglePlayback = async () => {
     if (!videoRef.current) return;
@@ -166,7 +193,14 @@ export default function CourseDetailsPage() {
     setVideoDuration(duration);
     setVideoProgress(duration ? (videoRef.current.currentTime / duration) * 100 : 0);
   };
-  const changeBooking = (event) => setBooking((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const changeBooking = (event) => {
+    const { name, value } = event.target;
+    setBooking((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === "class_date" ? { class_time: "" } : {}),
+    }));
+  };
   const submitBooking = async (event) => {
     event.preventDefault();
     setBookingStatus({ type: "", message: "" });
@@ -298,7 +332,8 @@ export default function CourseDetailsPage() {
           {user?.role === "student" ? <form onSubmit={submitBooking}>
             <Alert type={bookingStatus.type === "success" ? "success" : "error"}>{bookingStatus.type !== "loading" ? bookingStatus.message : ""}</Alert>
             <label><span>Class type</span><select name="class_type" value={booking.class_type} onChange={changeBooking}>{course.has_trial && <option value="trial">Trial class</option>}<option value="one-time">One-time class</option><option value="weekly">Weekly classes</option><option value="monthly">Monthly plan</option></select></label>
-            <div className="cx-form-row"><label><span>Date</span><input name="class_date" type="date" min={today()} value={booking.class_date} onChange={changeBooking} required /></label><label><span>Time</span><input name="class_time" type="time" value={booking.class_time} onChange={changeBooking} required /></label></div>
+            <div className="cx-form-row"><label><span>Date</span><input name="class_date" type="date" min={today()} value={booking.class_date} onChange={changeBooking} required /></label><label><span>Time</span><select name="class_time" value={booking.class_time} onChange={changeBooking} required disabled={!booking.class_date || availabilityLoading}>{booking.class_date ? <option value="">{availabilityLoading ? "Loading slots…" : "Choose a time"}</option> : <option value="">Pick a date first</option>}{selectedDateSlots.map((slot) => <option value={slot.time} key={slot.label}>{slot.time}</option>)}</select></label></div>
+            <p className="cx-booking-fineprint">{booking.class_date && !availabilityLoading && !selectedDateSlots.length ? "No calendar slots are open for this date yet. Pick another day." : "Times are loaded from the tutor’s calendar and existing bookings."}</p>
             <div className="cx-form-row"><label><span>Format</span><select name="mode" value={booking.mode} onChange={changeBooking}>{classModes.map((mode) => <option value={mode} key={mode}>{mode[0].toUpperCase() + mode.slice(1)}</option>)}</select></label><label><span>Duration</span><select name="duration_minutes" value={booking.duration_minutes} onChange={changeBooking}><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></label></div>
             <button className="cx-button cx-button-primary cx-button-wide" disabled={bookingStatus.type === "loading"}>{bookingStatus.type === "loading" ? "Sending request…" : <><CalendarDays size={17} /> Request this class</>}</button>
             <p className="cx-booking-fineprint">No charge today. The tutor confirms your request before a mock payment is created.</p>
