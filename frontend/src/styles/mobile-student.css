@@ -50,7 +50,7 @@
 .workspace-command-search:focus-within { border-color: var(--command-accent); box-shadow: 0 0 0 3px rgba(var(--command-accent-rgb), .12), 0 8px 22px rgba(14, 15, 18, .045); }
 .workspace-command-search input { width: 100%; min-height: 42px; padding: 8px 2px; border: 0; border-radius: 0; background: transparent; color: #17191d; font-size: .88rem; outline: 0; box-shadow: none; }
 .workspace-command-search input:focus { border: 0; box-shadow: none; }
-.workspace-command-search input::placeholder { color: #9ba0a8; }
+.workspace-command-search input::placeholder { color: #68716d; opacity: 1; }
 .workspace-command-search kbd,
 .workspace-command-footer kbd,
 .workspace-command-results kbd { display: inline-grid; min-width: 28px; min-height: 25px; padding: 3px 7px; place-items: center; border: 1px solid #d8dce1; border-radius: 7px; background: #f2f3f5; color: #70757d; font-family: inherit; font-size: .73rem; font-weight: 680; box-shadow: inset 0 -1px 0 #cdd1d6; }

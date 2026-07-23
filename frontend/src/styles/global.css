@@ -154,7 +154,7 @@ p { color: var(--color-muted); line-height: 1.68; text-wrap: pretty; }
 .filter-bar { display: grid; margin-bottom: 30px; padding: 14px; grid-template-columns: 1.5fr repeat(5, 1fr); gap: 9px; border: 1px solid var(--border); border-radius: 14px; background: white; }
 input, select, textarea { width: 100%; min-height: 44px; padding: 11px 13px; border: 1px solid var(--color-line-strong); border-radius: var(--radius-control); background: var(--color-surface); color: var(--color-ink); outline: none; transition: border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard); }
 input:focus, select:focus, textarea:focus { border-color: var(--color-action); box-shadow: var(--focus-ring); }
-input::placeholder, textarea::placeholder { color: #89908c; }
+input::placeholder, textarea::placeholder { color: #66716c; opacity: 1; }
 textarea { resize: vertical; }
 
 .tutor-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 25px; }

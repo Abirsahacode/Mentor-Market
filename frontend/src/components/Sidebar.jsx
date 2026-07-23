@@ -1,9 +1,10 @@
 import {
   BadgeCheck, Banknote, BarChart3, BookOpenCheck, Bookmark, BriefcaseBusiness, CalendarDays,
-  ChevronRight, CircleUserRound, ClipboardCheck, Compass, FileStack, GraduationCap, Heart,
+  ChevronDown, ChevronRight, CircleUserRound, ClipboardCheck, Compass, FileStack, GraduationCap, Heart,
   LayoutDashboard, LifeBuoy, ListChecks, MessageCircleMore, NotebookPen, Search, ShieldAlert,
   ShieldCheck, Sparkles, SquarePlus, Star, UserRoundCheck, UsersRound, X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
 import { formatDisplayName } from "../utils/formatters.js";
@@ -36,7 +37,7 @@ const roleMeta = {
   admin: { label: "Marketplace atelier", detail: "Keep learning trusted", Icon: ShieldCheck },
 };
 
-export default function Sidebar({ role, open, onNavigate }) {
+export default function Sidebar({ role, open, drawerMode, onNavigate }) {
   const { user } = useAuth();
   const location = useLocation();
   const meta = roleMeta[role];
@@ -44,6 +45,24 @@ export default function Sidebar({ role, open, onNavigate }) {
   const profilePath = role === "admin" ? "/admin/users" : `/${role}/profile`;
   const homePath = role === "student" ? "/student/discover" : `/${role}/dashboard`;
   const displayName = formatDisplayName(user?.full_name);
+  const activeGroup = workspaceNavigation[role].find((group) => group.items.some(([path]) => {
+    const destination = `/${role}/${path}`;
+    return location.pathname === destination
+      || location.pathname.startsWith(`${destination}/`)
+      || (role === "student" && path === "discover" && location.pathname.startsWith("/student/courses/"));
+  }))?.label;
+  const [expandedGroups, setExpandedGroups] = useState(() => new Set([activeGroup || workspaceNavigation[role][0].label]));
+
+  useEffect(() => {
+    if (activeGroup) setExpandedGroups((current) => new Set([...current, activeGroup]));
+  }, [activeGroup]);
+
+  const toggleGroup = (label) => setExpandedGroups((current) => {
+    const next = new Set(current);
+    if (next.has(label) && label !== activeGroup) next.delete(label);
+    else next.add(label);
+    return next;
+  });
 
   const navClass = (path, isActive) => {
     const courseRoute = role === "student" && path === "discover" && location.pathname.startsWith("/student/courses/");
@@ -51,7 +70,15 @@ export default function Sidebar({ role, open, onNavigate }) {
   };
 
   return (
-    <aside className={open ? "sidebar is-open" : "sidebar"} aria-label={`${meta.label} navigation`}>
+    <aside
+      id="workspace-sidebar"
+      className={open ? "sidebar is-open" : "sidebar"}
+      role={drawerMode ? "dialog" : undefined}
+      aria-modal={drawerMode && open ? "true" : undefined}
+      aria-hidden={drawerMode && !open ? "true" : undefined}
+      inert={drawerMode && !open ? true : undefined}
+      aria-label={`${meta.label} navigation`}
+    >
       <div className="sidebar-brand-row">
         <Link className="sidebar-brand" to={homePath} onClick={onNavigate} aria-label="Mentor Market workspace home">
           <BrandMark size={34} />
@@ -69,7 +96,16 @@ export default function Sidebar({ role, open, onNavigate }) {
       <nav aria-label={`${role} workspace sections`}>
         {workspaceNavigation[role].map((group) => (
           <div className="sidebar-group" key={group.label}>
-            <div className="sidebar-label">{group.label}</div>
+            <button
+              className="sidebar-group-toggle"
+              type="button"
+              aria-expanded={expandedGroups.has(group.label)}
+              aria-controls={`sidebar-group-${role}-${group.label.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")}`}
+              onClick={() => toggleGroup(group.label)}
+            >
+              <span>{group.label}</span><ChevronDown size={14} aria-hidden="true" />
+            </button>
+            <div id={`sidebar-group-${role}-${group.label.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")}`} hidden={!expandedGroups.has(group.label)}>
             {group.items.map(([path, label, Icon]) => (
               <NavLink
                 key={path}
@@ -83,6 +119,7 @@ export default function Sidebar({ role, open, onNavigate }) {
                 <ChevronRight className="sidebar-nav-arrow" size={14} aria-hidden="true" />
               </NavLink>
             ))}
+            </div>
           </div>
         ))}
       </nav>

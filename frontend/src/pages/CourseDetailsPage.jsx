@@ -1,7 +1,7 @@
 import {
   ArrowLeft, Award, BadgeCheck, BookOpen, CalendarDays, Check, ChevronDown, ChevronUp,
-  Clock3, Globe2, Heart, MapPin, MessageCircle, MonitorPlay, Pause, Play, ShieldCheck,
-  Sparkles, Star, Users, Video, Volume2, VolumeX, Zap,
+  Clock3, Globe2, Heart, MapPin, MessageCircle, MonitorPlay, Play, ShieldCheck,
+  Sparkles, Star, Users, Video, Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -81,7 +81,6 @@ export default function CourseDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [expandedModule, setExpandedModule] = useState(0);
@@ -91,6 +90,7 @@ export default function CourseDetailsPage() {
   const [booking, setBooking] = useState({ class_type: "trial", class_date: "", class_time: "", mode: "online", duration_minutes: 60 });
   const [availabilitySlots, setAvailabilitySlots] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -158,11 +158,13 @@ export default function CourseDetailsPage() {
       return;
     }
     setAvailabilityLoading(true);
+    setAvailabilityError("");
     try {
       const response = await api.get("/bookings/availability", { params: { tutor_id: Number(course?.tutor_id || tutor.id), from_date: date, to_date: date } });
       setAvailabilitySlots(response.data.data || []);
     } catch {
       setAvailabilitySlots([]);
+      setAvailabilityError("Availability could not be checked right now. Try another date or message the mentor.");
     } finally {
       setAvailabilityLoading(false);
     }
@@ -176,17 +178,6 @@ export default function CourseDetailsPage() {
     loadAvailability(booking.class_date);
   }, [booking.class_date, course?.tutor_id, tutor.id]);
 
-  const togglePlayback = async () => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      try { await videoRef.current.play(); setPlaying(true); } catch { setPlaying(false); }
-    } else { videoRef.current.pause(); setPlaying(false); }
-  };
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !videoRef.current.muted;
-    setMuted(videoRef.current.muted);
-  };
   const updateVideoProgress = () => {
     if (!videoRef.current) return;
     const duration = videoRef.current.duration || 0;
@@ -260,16 +251,13 @@ export default function CourseDetailsPage() {
       <div className="cx-media-shell">
         <div className="cx-media">
           <CourseArtwork subject={course.subject} decorative={false} />
-          {course.demo_video_url ? <video className={playing ? "is-playing" : ""} ref={videoRef} src={course.demo_video_url} muted loop playsInline preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={updateVideoProgress} onTimeUpdate={updateVideoProgress} /> : null}
+          {course.demo_video_url ? <video className={playing ? "is-playing" : ""} ref={videoRef} src={course.demo_video_url} controls muted loop playsInline preload="metadata" aria-describedby="course-preview-access" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={updateVideoProgress} onTimeUpdate={updateVideoProgress} /> : null}
           <div className="cx-media-shade" />
           <div className="cx-media-meta"><span><i /> Preview film</span><span>{course.teaching_mode} / {course.level}</span></div>
-          {course.demo_video_url && <div className="cx-video-controls">
-            <button type="button" onClick={togglePlayback} aria-label={playing ? "Pause preview" : "Play preview"}>{playing ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}</button>
-            <button type="button" onClick={toggleMute} aria-label={muted ? "Unmute preview" : "Mute preview"}>{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
-          </div>}
           <div className="cx-media-caption"><span>Learn with</span><strong>{tutorName}</strong></div>
           {course.demo_video_url && <div className="cx-video-timeline"><span style={{ width: `${videoProgress}%` }} /><small>{videoDuration ? `${Math.ceil(videoDuration)} sec preview` : "Loading film"}</small></div>}
         </div>
+        {course.demo_video_url && <p className="cx-video-access" id="course-preview-access">Playback controls include seeking, volume, and fullscreen. Captions are not available for this preview.</p>}
         <div className="cx-film-index" aria-hidden="true"><span>MM / COURSE PREVIEW</span><strong>{String(course.id).padStart(2, "0")}</strong></div>
       </div>
       <div className="cx-hero-copy">
@@ -333,7 +321,7 @@ export default function CourseDetailsPage() {
             <Alert type={bookingStatus.type === "success" ? "success" : "error"}>{bookingStatus.type !== "loading" ? bookingStatus.message : ""}</Alert>
             <label><span>Class type</span><select name="class_type" value={booking.class_type} onChange={changeBooking}>{course.has_trial && <option value="trial">Trial class</option>}<option value="one-time">One-time class</option><option value="weekly">Weekly classes</option><option value="monthly">Monthly plan</option></select></label>
             <div className="cx-form-row"><label><span>Date</span><input name="class_date" type="date" min={today()} value={booking.class_date} onChange={changeBooking} required /></label><label><span>Time</span><select name="class_time" value={booking.class_time} onChange={changeBooking} required disabled={!booking.class_date || availabilityLoading}>{booking.class_date ? <option value="">{availabilityLoading ? "Loading slots…" : "Choose a time"}</option> : <option value="">Pick a date first</option>}{selectedDateSlots.map((slot) => <option value={slot.time} key={slot.label}>{slot.time}</option>)}</select></label></div>
-            <p className="cx-booking-fineprint">{booking.class_date && !availabilityLoading && !selectedDateSlots.length ? "No calendar slots are open for this date yet. Pick another day." : "Times are loaded from the tutor’s calendar and existing bookings."}</p>
+            <p className={`cx-booking-fineprint${availabilityError ? " is-error" : ""}`}>{availabilityError || (booking.class_date && !availabilityLoading && !selectedDateSlots.length ? "No calendar slots are open for this date yet. Pick another day." : "Times are loaded from the tutor’s calendar and existing bookings.")}</p>
             <div className="cx-form-row"><label><span>Format</span><select name="mode" value={booking.mode} onChange={changeBooking}>{classModes.map((mode) => <option value={mode} key={mode}>{mode[0].toUpperCase() + mode.slice(1)}</option>)}</select></label><label><span>Duration</span><select name="duration_minutes" value={booking.duration_minutes} onChange={changeBooking}><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></label></div>
             <button className="cx-button cx-button-primary cx-button-wide" disabled={bookingStatus.type === "loading"}>{bookingStatus.type === "loading" ? "Sending request…" : <><CalendarDays size={17} /> Request this class</>}</button>
             <p className="cx-booking-fineprint">No charge today. The tutor confirms your request before a mock payment is created.</p>

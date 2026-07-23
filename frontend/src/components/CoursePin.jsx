@@ -6,11 +6,13 @@ import { Link } from "react-router-dom";
 import CourseArtwork from "./CourseArtwork.jsx";
 import DemoVideo from "./DemoVideo.jsx";
 import UserAvatar from "./UserAvatar.jsx";
+import useReducedMotion from "../hooks/useReducedMotion.js";
 
 const formats = ["portrait", "landscape", "standard", "portrait", "standard", "landscape"];
 const tones = ["jade", "azure", "graphite"];
 
 export default function CoursePin({ course, index = 0, saved = false, compared = false, onToggleSave, onToggleCompare }) {
+  const reducedMotion = useReducedMotion();
   const mediaRef = useRef(null);
   const previewRef = useRef(null);
   const [previewing, setPreviewing] = useState(false);
@@ -21,7 +23,7 @@ export default function CoursePin({ course, index = 0, saved = false, compared =
   const coursePath = `/student/courses/${course.id}`;
 
   const beginPreview = () => {
-    if (!previewRef.current || !course.demo_video_url) return;
+    if (reducedMotion || !previewRef.current || !course.demo_video_url) return;
     previewRef.current.play().then(() => setPreviewing(true)).catch(() => {});
   };
 

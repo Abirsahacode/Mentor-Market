@@ -1,11 +1,12 @@
 import {
-  BadgeCheck, BarChart3, Bell, BookOpenCheck, CalendarDays, ClipboardCheck, Compass, FileStack,
-  LayoutDashboard, MessageCircleMore, Search, ShieldAlert, SquarePlus, UserRound, UsersRound, X,
+  BadgeCheck, BarChart3, Bell, BookOpenCheck, CalendarDays, Compass, FileStack,
+  LayoutDashboard, MessageCircleMore, Search, ShieldAlert, SquarePlus, UsersRound, X,
 } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
+import { workspaceNavigation } from "./Sidebar.jsx";
 
 const mobileNavigation = {
   student: [
@@ -31,35 +32,17 @@ const mobileNavigation = {
   ],
 };
 
-const quickDestinations = {
-  student: [
-    { label: "Discover courses", hint: "Video lessons picked for you", path: "/student/discover", Icon: Compass },
-    { label: "Browse tutors", hint: "Find a mentor by subject", path: "/student/tutors", Icon: UsersRound },
-    { label: "My classes", hint: "Upcoming and past bookings", path: "/student/bookings", Icon: CalendarDays },
-    { label: "Assignments", hint: "View work and submit answers", path: "/student/assignments", Icon: ClipboardCheck },
-    { label: "Learning progress", hint: "Scores, attendance and feedback", path: "/student/progress", Icon: BarChart3 },
-    { label: "Saved courses", hint: "Return to your course library", path: "/student/saved-courses", Icon: BookOpenCheck },
-    { label: "My profile", hint: "Goals and account details", path: "/student/profile", Icon: UserRound },
-  ],
-  tutor: [
-    { label: "Teaching overview", hint: "Classes, applications and earnings", path: "/tutor/dashboard", Icon: LayoutDashboard },
-    { label: "Create a course", hint: "Publish a new teaching service", path: "/tutor/create-service", Icon: SquarePlus },
-    { label: "Student requests", hint: "Find students who need your skills", path: "/tutor/requests", Icon: FileStack },
-    { label: "Class schedule", hint: "Manage upcoming bookings", path: "/tutor/bookings", Icon: CalendarDays },
-    { label: "Study materials", hint: "Share resources with students", path: "/tutor/materials", Icon: BookOpenCheck },
-    { label: "Verification", hint: "Build trust with your credentials", path: "/tutor/verification", Icon: BadgeCheck },
-    { label: "Public profile", hint: "Polish how students see you", path: "/tutor/profile", Icon: UserRound },
-  ],
-  admin: [
-    { label: "Marketplace pulse", hint: "Activity and revenue overview", path: "/admin/dashboard", Icon: BarChart3 },
-    { label: "All users", hint: "Manage access and account status", path: "/admin/users", Icon: UsersRound },
-    { label: "Tutor verification", hint: "Review mentor credentials", path: "/admin/verifications", Icon: BadgeCheck },
-    { label: "Safety reports", hint: "Resolve marketplace concerns", path: "/admin/reports", Icon: ShieldAlert },
-    { label: "Tutor posts", hint: "Moderate course listings", path: "/admin/tutor-posts", Icon: FileStack },
-    { label: "Bookings", hint: "Review class activity", path: "/admin/bookings", Icon: CalendarDays },
-    { label: "Notifications", hint: "See recent platform activity", path: "/admin/notifications", Icon: Bell },
-  ],
-};
+const quickDestinations = Object.fromEntries(
+  Object.entries(workspaceNavigation).map(([role, groups]) => [
+    role,
+    groups.flatMap((group) => group.items.map(([slug, label, Icon]) => ({
+      label,
+      hint: group.label,
+      path: `/${role}/${slug}`,
+      Icon,
+    }))),
+  ]),
+);
 
 const workspaceNames = { student: "Learning atelier", tutor: "Teaching atelier", admin: "Marketplace atelier" };
 
@@ -79,7 +62,7 @@ export default function StudentMobileNav() {
 
   const results = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return destinations;
+    if (!term) return destinations.slice(0, 8);
     return destinations.filter(({ label, hint }) => `${label} ${hint}`.toLowerCase().includes(term));
   }, [destinations, query]);
 
@@ -176,7 +159,7 @@ export default function StudentMobileNav() {
           />
           <kbd>Esc</kbd>
         </label>
-        <div className="workspace-command-label"><span>Quick destinations</span><small>{results.length} results</small></div>
+        <div className="workspace-command-label"><span>{query.trim() ? "Search results" : "Quick destinations"}</span><small>{query.trim() ? results.length : `${results.length} of ${destinations.length}`} shown</small></div>
         <div className="workspace-command-results" aria-live="polite">
           {results.map(({ label, hint, path, Icon }, index) => (
             <button

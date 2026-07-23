@@ -221,7 +221,7 @@
 .public-shell .media-caption { z-index: 4; right: 65px; bottom: 13px; left: 13px; padding: 9px 11px; border-radius: 9px; background: rgba(14, 15, 18, .82); backdrop-filter: blur(8px); }
 .public-shell .media-caption small { color: #8ee5cd; font-size: .75rem; }
 .public-shell .media-caption strong { margin-top: 3px; font-size: .77rem; }
-.public-shell .tutor-card-media .demo-video-icon { z-index: 5; right: 13px; bottom: 13px; width: 43px; height: 43px; border: 0; background: #fff; color: var(--pub-ink); box-shadow: 0 8px 20px rgba(0, 0, 0, .22); }
+.public-shell .tutor-card-media .demo-video-icon { z-index: 5; right: 13px; bottom: 13px; width: 44px; height: 44px; border: 0; background: #fff; color: var(--pub-ink); box-shadow: 0 8px 20px rgba(0, 0, 0, .22); }
 .public-shell .tutor-card-head { grid-template-columns: 50px minmax(0, 1fr) auto; gap: 12px; }
 .public-shell .tutor-card-head .user-avatar { border-radius: 50%; }
 .public-shell .name-line h3 { font-size: 1.02rem; }
@@ -460,6 +460,7 @@
 .public-shell .profile-highlights > span { grid-template-columns: 22px 1fr; }.public-shell .profile-highlights svg { color: #70dfbe; }.public-shell .profile-highlights b { color: #fff; font-size: .76rem; }.public-shell .profile-highlights small { color: #858991; font-size: .7rem; }
 .public-shell .profile-cover-actions { display: grid; margin-top: 27px; grid-template-columns: 1fr 1fr; gap: 9px; }
 .public-shell .profile-cover-actions .button { width: 100%; }
+.public-shell .profile-cover-actions:has(> :nth-child(3)) > .button:last-child { grid-column: 1 / -1; }
 .public-shell .profile-cover-actions .button-ghost { border-color: #454850; background: transparent; color: #fff; }
 .public-shell .profile-cover-actions .button-ghost:hover { border-color: #6b7079; background: #282b30; color: #fff; }
 .public-shell .profile-proof-strip { display: grid; margin-top: 26px; padding: 23px 0 26px; grid-template-columns: repeat(3, 1fr); gap: 30px; }
@@ -558,12 +559,12 @@
 .public-shell .requests-intro-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
 .public-shell .home-section-error { width: 100%; padding: 22px; border: 1px solid #e2c6ca; border-radius: 16px; background: #fff; }
 .public-shell .home-section-error .alert { margin-bottom: 12px; }
-.public-shell .request-card-link { display: inline-flex; min-height: 36px; padding: 8px 10px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cfd5da; border-radius: 9px; color: var(--pub-jade-dark); font-size: .72rem; font-weight: 740; white-space: nowrap; }
+.public-shell .request-card-link { display: inline-flex; min-height: 44px; padding: 8px 11px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #cfd5da; border-radius: 9px; color: var(--pub-jade-dark); font-size: .78rem; font-weight: 740; white-space: nowrap; }
 .public-shell .request-card-link:hover { border-color: var(--pub-jade); background: var(--pub-jade-soft); }
 .public-shell .request-bottom { grid-template-columns: minmax(0, 1fr) auto auto; }
 .public-shell .pagination { display: flex; margin-top: 42px; align-items: center; justify-content: center; gap: 14px; }
 .public-shell .pagination > button,
-.public-shell .pagination div button { display: inline-flex; min-width: 40px; height: 40px; padding: 0 11px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--pub-line); border-radius: 10px; background: #fff; color: #4f535b; font-size: .74rem; font-weight: 700; }
+.public-shell .pagination div button { display: inline-flex; min-width: 44px; height: 44px; padding: 0 11px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--pub-line); border-radius: 10px; background: #fff; color: #4f535b; font-size: .78rem; font-weight: 700; }
 .public-shell .pagination > button:hover:not(:disabled),
 .public-shell .pagination div button:hover,
 .public-shell .pagination div button.active { border-color: var(--pub-jade); background: var(--pub-jade-soft); color: var(--pub-jade-dark); }
@@ -612,13 +613,13 @@
   .public-shell .brief-preview-board,
   .public-shell .information-visual { max-width: 680px; }
   .public-shell .discovery-body { grid-template-columns: 1fr; }
-  .public-shell .mobile-filter-button { display: inline-flex; width: max-content; min-height: 42px; padding: 9px 12px; align-items: center; gap: 7px; border: 1px solid var(--pub-line); border-radius: 10px; background: #fff; color: var(--pub-ink); font-size: .75rem; }
+  .public-shell .mobile-filter-button { display: inline-flex; width: max-content; min-height: 44px; padding: 9px 12px; align-items: center; gap: 7px; border: 1px solid var(--pub-line); border-radius: 10px; background: #fff; color: var(--pub-ink); font-size: .78rem; }
   .public-shell .mobile-filter-button b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 50%; background: var(--pub-jade); color: #fff; font-size: .62rem; }
   .public-shell .filter-scrim { position: fixed; z-index: 94; inset: 0; display: block; border: 0; background: rgba(14, 15, 18, .48); }
   .public-shell .filter-sidebar { position: fixed; z-index: 95; top: 0; right: 0; bottom: 0; display: block; visibility: hidden; width: min(370px, 92vw); padding: 25px; overflow-y: auto; border: 0; border-radius: 20px 0 0 20px; box-shadow: -20px 0 55px rgba(14, 15, 18, .2); pointer-events: none; transform: translateX(105%); transition: visibility .25s ease, transform .25s ease; }
   .public-shell .filter-sidebar:not(.is-open) { display: none; }
   .public-shell .filter-sidebar.is-open { display: block; visibility: visible; pointer-events: auto; transform: translateX(0); }
-  .public-shell .filter-mobile-close { display: grid; width: 34px; height: 34px; padding: 0; place-items: center; border: 1px solid var(--pub-line); border-radius: 9px; background: #fff; color: var(--pub-ink); }
+  .public-shell .filter-mobile-close { display: grid; width: 44px; height: 44px; padding: 0; place-items: center; border: 1px solid var(--pub-line); border-radius: 9px; background: #fff; color: var(--pub-ink); }
   .public-shell .profile-cinema { grid-template-columns: 1fr; }
   .public-shell .profile-cinema-media { min-height: 460px; }
   .public-shell .profile-summary { min-height: 500px; }
@@ -735,7 +736,7 @@
   .public-shell .discovery-body,
   .public-shell .opportunities-body { padding-block: 55px 85px; }
   .public-shell .results-toolbar { align-items: flex-start; flex-direction: column; gap: 14px; }
-  .public-shell .results-toolbar label { width: 100%; }.public-shell .results-toolbar select { width: 100%; }
+  .public-shell .results-toolbar label { width: 100%; white-space: nowrap; }.public-shell .results-toolbar select { width: 100%; min-width: 0; }
   .public-shell .request-hero-actions { align-items: flex-start; flex-direction: column; }
   .public-shell .opportunities-meta { align-items: flex-start; flex-direction: column; gap: 8px; }
   .public-shell .profile-cinema-media { min-height: 340px; }
@@ -754,11 +755,11 @@
   .public-shell .information-principle { margin-bottom: 70px; padding: 25px; }
   .public-shell .footer-marquee { padding-block: 65px; }.public-shell .footer-marquee h2 { font-size: 3.25rem; }
   .public-shell .footer-main { padding-block: 48px; gap: 45px; }.public-shell .footer-grid { grid-template-columns: 1fr 1fr; gap: 30px; }.public-shell .footer-bottom { align-items: flex-start; flex-direction: column; gap: 7px; }
-  .public-shell .public-back-to-top { right: 15px; bottom: 15px; width: 42px; height: 42px; }
+  .public-shell .public-back-to-top { right: 15px; bottom: 15px; width: 44px; height: 44px; }
   .public-shell .pagination { gap: 7px; }
   .public-shell .pagination > button { min-width: 40px; padding-inline: 9px; }
   .public-shell .pagination > button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .public-shell .pagination div button { min-width: 36px; width: 36px; height: 38px; padding: 0; }
+  .public-shell .pagination div button { min-width: 44px; width: 44px; height: 44px; padding: 0; }
   .auth-premium .auth-story { height: 275px; }
   .auth-premium .auth-story-content h1 { font-size: 2.5rem; }
   .auth-premium .auth-form-wrap { padding: 30px 18px 55px; }
@@ -1215,7 +1216,7 @@
   max-width: 900px;
   margin: 12px 0 13px;
   color: var(--pub-ink);
-  font-size: clamp(3.4rem, 5.3vw, 5.4rem);
+  font-size: clamp(2.75rem, 3.7vw, 3.35rem);
   font-weight: 500;
   line-height: .88;
 }
@@ -1239,6 +1240,8 @@
   font-size: .8rem;
 }
 .public-shell .directory-quick-topics button {
+  min-height: 44px;
+  padding-inline: 14px;
   border-color: #bcb1a1;
   border-radius: 999px;
   color: #626960;
@@ -1267,21 +1270,23 @@
 .public-shell .filter-intro { margin-bottom: 21px; font-size: .8rem; }
 .public-shell .filter-control > span { font-size: .8rem; }
 .public-shell .filter-control select,
-.public-shell .filter-control input { font-size: .85rem; }
+.public-shell .filter-control input { min-height: 44px; font-size: .85rem; }
 .public-shell .segmented-filter button,
-.public-shell .filter-chip-row button { font-size: .78rem; }
+.public-shell .filter-chip-row button { min-height: 44px; padding-block: 8px; font-size: .78rem; }
 .public-shell .filter-note { background: var(--pub-verified-soft); color: var(--pub-verified); }
 .public-shell .filter-note strong { font-size: .82rem; }
 .public-shell .filter-note small { font-size: .77rem; }
-.public-shell .filter-clear { font-size: .78rem; }
+.public-shell .filter-clear { min-height: 44px; font-size: .78rem; }
 .public-shell .results-toolbar { margin-bottom: 18px; padding-bottom: 17px; }
 .public-shell .results-kicker { color: var(--pub-azure); font-size: .76rem; }
 .public-shell .results-toolbar strong { font-size: 1.55rem; }
 .public-shell .results-toolbar p,
 .public-shell .results-toolbar label,
 .public-shell .results-toolbar select { font-size: .82rem; }
+.public-shell .results-toolbar select { min-height: 44px; }
 .public-shell .discovery-results .tutor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .public-shell .active-filters button { font-size: .78rem; }
+.public-shell .booking-footnote.is-error { color: var(--color-danger); font-weight: 650; }
 
 /* A profile that gets to the mentor and classes sooner */
 .public-shell .profile-cover { padding-top: 28px; background: var(--pub-ink); }
@@ -1591,14 +1596,14 @@
   .public-shell .home-requests-section { gap: 34px; }
   .public-shell .home-final-cta { grid-template-columns: 52px 1fr; }
   .public-shell .home-final-actions { grid-column: 2; }
-  .public-shell .directory-header h1 { font-size: clamp(3.4rem, 12vw, 4.6rem); }
+  .public-shell .directory-header h1 { font-size: clamp(2.65rem, 10vw, 3.15rem); }
   .public-shell .discovery-results .tutor-grid { grid-template-columns: 1fr; }
   .public-shell .service-list { grid-template-columns: 1fr; }
   .public-shell .profile-mobile-cta {
     position: fixed;
     z-index: 85;
     right: 10px;
-    bottom: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
     left: 10px;
     display: flex;
     min-height: 68px;
@@ -1616,7 +1621,8 @@
   .public-shell .profile-mobile-cta small { color: #747b76; font-size: .7rem; }
   .public-shell .profile-mobile-cta strong { overflow: hidden; color: var(--pub-ink); font-size: .86rem; text-overflow: ellipsis; white-space: nowrap; }
   .public-shell .profile-mobile-cta .button { min-height: 48px; flex: 0 0 auto; }
-  .public-shell .tutor-profile-page { padding-bottom: 85px; }
+  .public-shell .tutor-profile-page { padding-bottom: calc(85px + env(safe-area-inset-bottom)); }
+  .public-shell:has(.profile-mobile-cta) .public-back-to-top { bottom: calc(92px + env(safe-area-inset-bottom)); }
   .public-shell .footer-callout,
   .public-shell .footer-main { grid-template-columns: 1fr; align-items: start; gap: 30px; }
   .public-shell .footer-callout { padding-block: 50px; }
@@ -1638,7 +1644,7 @@
   .public-shell .home-final-cta { grid-template-columns: 1fr; }
   .public-shell .home-final-actions { grid-column: 1; }
   .public-shell .directory-header { padding-block: 38px 42px; }
-  .public-shell .directory-header h1 { font-size: 3.55rem; }
+  .public-shell .directory-header h1 { font-size: 2.8rem; }
   .public-shell .directory-header .marketplace-search { border-radius: 16px; }
   .public-shell .profile-cinema-media { min-height: 330px; }
   .public-shell .profile-summary { padding: 26px; }

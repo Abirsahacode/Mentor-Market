@@ -46,7 +46,7 @@ const RoleShell = ({ role }) => <ProtectedRoute roles={[role]}><DashboardLayout 
 const NotFound = () => <main className="not-found-page"><div className="not-found-brand"><Brand /></div><section><div className="not-found-code"><span>4</span><Compass size={70} /><span>4</span></div><p className="eyebrow">Wrong turn, useful detour</p><h1>This page left the lesson.</h1><p>The link may be old, or the page may have moved somewhere more useful.</p><Link className="button" to="/"><ArrowLeft size={16} /> Return to Mentor Market</Link></section></main>;
 
 export default function App() {
-  return <><RouteEffects /><Suspense fallback={<main className="route-loading"><LoadingSpinner label="Loading page" /></main>}><Routes>
+  return <><RouteEffects /><Suspense fallback={<main className="route-loading"><LoadingSpinner label="Loading page" detail="Preparing Mentor Market" /></main>}><Routes>
     <Route element={<PublicLayout />}>
       <Route index element={<HomePage />} />
       <Route path="tutors" element={<FindTutorsPage />} />
