@@ -21,6 +21,11 @@ const parseSubjects = (value) => {
   try { return JSON.parse(value || "[]"); } catch { return []; }
 };
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const addDays = (value, days) => {
+  const date = new Date(`${value}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
 
 export default function TutorDetailsPage() {
   const { id } = useParams();
@@ -66,6 +71,38 @@ export default function TutorDetailsPage() {
     finally { setSubmitting(false); }
   };
   const save = async () => { setSaving(true); try { await api.post(`/students/saved-tutors/${id}`); setFeedback("Tutor saved to your favorites."); } catch (requestError) { setFeedback(getErrorMessage(requestError)); } finally { setSaving(false); } };
+
+  useEffect(() => {
+    if (!booking.class_date) {
+      setBooking((current) => ({ ...current, class_date: today() }));
+      setAvailabilitySlots([]);
+      return;
+    }
+    const loadAvailability = async () => {
+      setAvailabilityLoading(true);
+      try {
+        const response = await api.get("/bookings/availability", { params: { tutor_id: Number(id), from_date: booking.class_date, to_date: booking.class_date } });
+        const slots = response.data.data || [];
+        if (!slots.length && booking.class_date === today()) {
+          const rangeResponse = await api.get("/bookings/availability", { params: { tutor_id: Number(id), from_date: booking.class_date, to_date: addDays(booking.class_date, 7) } });
+          const rangeSlots = rangeResponse.data.data || [];
+          if (rangeSlots.length) {
+            const nextDate = rangeSlots[0].date;
+            setBooking((current) => current.class_date === booking.class_date ? { ...current, class_date: nextDate, class_time: "" } : current);
+            setAvailabilitySlots(rangeSlots.filter((slot) => slot.date === nextDate));
+            return;
+          }
+        }
+        setAvailabilitySlots(slots);
+      } catch {
+        setAvailabilitySlots([]);
+      } finally {
+        setAvailabilityLoading(false);
+      }
+    };
+    loadAvailability();
+  }, [booking.class_date, id]);
+
   if (loading) return <main className="center-page"><LoadingSpinner label="Preparing mentor profile" /></main>;
   if (error || !tutor) return <main className="center-page"><Alert>{error || "Tutor not found"}</Alert></main>;
   const subjects = parseSubjects(tutor.subjects);
@@ -78,25 +115,6 @@ export default function TutorDetailsPage() {
   const classModes = selectedService?.teaching_mode === "both" ? ["online", "offline"] : [selectedService?.teaching_mode || (tutor.teaching_mode === "offline" ? "offline" : "online")];
   const classTypes = [...(selectedService?.has_trial ? ["trial"] : []), "one-time", "weekly", "monthly"];
   const selectedDateSlots = availabilitySlots.filter((slot) => slot.date === booking.class_date);
-
-  useEffect(() => {
-    if (!booking.class_date) {
-      setAvailabilitySlots([]);
-      return;
-    }
-    const loadAvailability = async () => {
-      setAvailabilityLoading(true);
-      try {
-        const response = await api.get("/bookings/availability", { params: { tutor_id: Number(id), from_date: booking.class_date, to_date: booking.class_date } });
-        setAvailabilitySlots(response.data.data || []);
-      } catch {
-        setAvailabilitySlots([]);
-      } finally {
-        setAvailabilityLoading(false);
-      }
-    };
-    loadAvailability();
-  }, [booking.class_date, id]);
   const chooseService = (post) => {
     setSelectedPostId(post.id);
     setBooking((current) => ({ ...current, class_type: post.has_trial ? "trial" : "one-time", mode: post.teaching_mode === "offline" ? "offline" : "online" }));

@@ -29,3 +29,15 @@ test("generateAvailabilitySlots handles seeded availability text like Sun-Thu, 5
   assert.ok(slots.some((slot) => slot.date === "2026-07-20" && slot.time === "17:00"));
   assert.ok(slots.some((slot) => slot.date === "2026-07-24" && slot.time === "20:00"));
 });
+
+test("generateAvailabilitySlots keeps the selected date intact for local timezone bookings", () => {
+  const slots = generateAvailabilitySlots({
+    availabilityText: "Every day, 6 PM-10 PM",
+    fromDate: "2026-07-24",
+    toDate: "2026-07-24",
+    existingBookings: [],
+  });
+
+  assert.ok(slots.some((slot) => slot.date === "2026-07-24"));
+  assert.ok(slots.some((slot) => slot.date === "2026-07-24" && slot.time === "20:00"));
+});
