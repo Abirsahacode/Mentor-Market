@@ -7,6 +7,7 @@ import AccessibleDialog from "../components/AccessibleDialog.jsx";
 import DataTable from "../components/DataTable.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import FormField from "../components/FormField.jsx";
+import LiveClassAction from "../components/LiveClassAction.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequestCard from "../components/RequestCard.jsx";
@@ -148,9 +149,56 @@ export function BookingsPage() {
   const columns = [
     { key: user.role === "student" ? "tutor_name" : "student_name", label: user.role === "student" ? "Tutor" : "Student" },
     { key: "class_type", label: "Class type" }, { key: "class_date", label: "Date", render: (value) => new Date(value).toLocaleDateString() },
-    { key: "class_time", label: "Time", render: (value) => value?.slice(0, 5) }, { key: "mode", label: "Mode" }, { key: "status", label: "Status", render: status },
+    { key: "class_time", label: "Time", render: (value) => value?.slice(0, 5) }, { key: "mode", label: "Mode" },
+    {
+      key: "meeting_link_or_location",
+      label: "Session",
+      render: (value, row) => {
+        if (row.mode === "online" && value) {
+          return (
+            <LiveClassAction
+              href={value}
+              variant="link"
+              purpose="session"
+              title={`${row.class_type} class · ${row.class_date}`}
+            />
+          );
+        }
+        return value || "—";
+      },
+    },
+    { key: "status", label: "Status", render: status },
   ];
-  const actions = (row) => { const pending = bookingAction.id === row.id && bookingAction.status === "pending"; return <>{user.role === "tutor" && row.status === "pending" && <button className="button button-tiny" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "confirmed")}>{pending ? "Updating…" : "Confirm"}</button>}{user.role === "tutor" && row.status === "confirmed" && <button className="button button-tiny" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "completed")}>{pending ? "Updating…" : "Complete"}</button>}{!["completed", "cancelled"].includes(row.status) && <button className="button button-tiny button-danger" disabled={pending} onClick={() => update(row.id, "cancelled")}>Cancel</button>}</>; };
+  const actions = (row) => {
+    const pending = bookingAction.id === row.id && bookingAction.status === "pending";
+    return (
+      <>
+        {user.role === "tutor" && row.status === "pending" && (
+          <button className="button button-tiny" type="button" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "confirmed")}>
+            {pending ? "Updating…" : "Confirm"}
+          </button>
+        )}
+        {user.role === "tutor" && row.status === "confirmed" && (
+          <button className="button button-tiny" type="button" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "completed")}>
+            {pending ? "Updating…" : "Complete"}
+          </button>
+        )}
+        {row.mode === "online" && row.meeting_link_or_location && row.status === "confirmed" && (
+          <LiveClassAction
+            href={row.meeting_link_or_location}
+            variant="button"
+            purpose="join"
+            title={`${row.class_type} class with ${user.role === "student" ? row.tutor_name : row.student_name}`}
+          />
+        )}
+        {!["completed", "cancelled"].includes(row.status) && (
+          <button className="button button-tiny button-danger" type="button" disabled={pending} onClick={() => update(row.id, "cancelled")}>
+            Cancel
+          </button>
+        )}
+      </>
+    );
+  };
   return <section><PageHeader eyebrow="Class calendar" title="My bookings" description="Manage upcoming classes, confirmations, and the sessions already completed." /><Alert type={bookingAction.status === "success" ? "success" : "error"}>{bookingAction.message}</Alert><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <DataTable label="Bookings" rows={data} columns={columns} actions={actions} /> : <EmptyState icon={CalendarDays} title="No classes booked" text="Your class schedule will appear here after a booking is created." />}</section>;
 }
 

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Alert from "../components/Alert.jsx";
+import LiveClassAction from "../components/LiveClassAction.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import StatCard from "../components/StatCard.jsx";
 import UserAvatar from "../components/UserAvatar.jsx";
@@ -246,7 +247,18 @@ function UserDashboard({ role, displayName }) {
             <div className="activity-row" key={booking.id}>
               <span className="activity-date"><strong>{new Date(booking.class_date).getDate()}</strong><small>{new Date(booking.class_date).toLocaleString("en", { month: "short" })}</small></span>
               <UserAvatar name={isStudent ? booking.tutor_name : booking.student_name} size="tiny" />
-              <div><strong>{isStudent ? booking.tutor_name : booking.student_name}</strong><p><Clock3 size={13} /> {booking.class_time?.slice(0, 5)} · {booking.class_type} · {booking.mode}</p></div>
+              <div>
+                <strong>{isStudent ? booking.tutor_name : booking.student_name}</strong>
+                <p><Clock3 size={13} /> {booking.class_time?.slice(0, 5)} · {booking.class_type} · {booking.mode}</p>
+                {booking.mode === "online" && booking.meeting_link_or_location && booking.status === "confirmed" ? (
+                  <LiveClassAction
+                    href={booking.meeting_link_or_location}
+                    variant="link"
+                    purpose="join"
+                    title={`${booking.class_type} class with ${isStudent ? booking.tutor_name : booking.student_name}`}
+                  />
+                ) : null}
+              </div>
               <span className={`status-badge status-${booking.status}`}>{booking.status}</span>
             </div>
           )) : (
