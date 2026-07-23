@@ -1,0 +1,108 @@
+/* Text-free course covers. Metadata stays in HTML, so every crop remains intentional. */
+.course-artwork {
+  --art-bg: #d9f1e9;
+  --art-bg-deep: #91d9c6;
+  --art-ink: #0a5748;
+  --art-line: rgba(10, 87, 72, .18);
+  --art-pop: #236fe1;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, .58), transparent 27%),
+    linear-gradient(135deg, var(--art-bg) 0 52%, var(--art-bg-deep) 100%);
+  color: var(--art-ink);
+}
+.course-artwork-math { --art-bg: #c9efe3; --art-bg-deep: #76ceb7; --art-ink: #064f42; --art-line: rgba(6, 79, 66, .18); --art-pop: #236fe1; }
+.course-artwork-physics { --art-bg: #dcecff; --art-bg-deep: #8dbbf2; --art-ink: #12375e; --art-line: rgba(18, 55, 94, .17); --art-pop: #f05f43; }
+.course-artwork-science { --art-bg: #f7e7ba; --art-bg-deep: #efb55e; --art-ink: #653d10; --art-line: rgba(101, 61, 16, .17); --art-pop: #0e9174; }
+.course-artwork-code { --art-bg: #202830; --art-bg-deep: #0d1115; --art-ink: #9be6d2; --art-line: rgba(155, 230, 210, .13); --art-pop: #c9f562; }
+.course-artwork-language { --art-bg: #f0e7dc; --art-bg-deep: #d5b9a2; --art-ink: #5a302a; --art-line: rgba(90, 48, 42, .16); --art-pop: #315bd6; }
+.course-artwork-studio { --art-bg: #e9e2f5; --art-bg-deep: #b8a6dc; --art-ink: #433568; --art-line: rgba(67, 53, 104, .16); --art-pop: #0e9878; }
+
+.course-artwork-grid {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: linear-gradient(var(--art-line) 1px, transparent 1px), linear-gradient(90deg, var(--art-line) 1px, transparent 1px);
+  background-size: clamp(27px, 12%, 48px) clamp(27px, 12%, 48px);
+  mask-image: linear-gradient(135deg, #000, rgba(0, 0, 0, .65) 62%, transparent);
+}
+.course-artwork::before {
+  position: absolute;
+  z-index: -1;
+  width: 44%;
+  aspect-ratio: 1;
+  top: -18%;
+  right: -7%;
+  border: clamp(12px, 3vw, 34px) solid rgba(255, 255, 255, .22);
+  border-radius: 50%;
+  content: "";
+}
+.course-artwork::after {
+  position: absolute;
+  z-index: -1;
+  right: 6%;
+  bottom: 8%;
+  width: 11%;
+  min-width: 24px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--art-pop);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--art-pop) 32%, transparent);
+  content: "";
+}
+.course-artwork-mark {
+  display: grid;
+  position: absolute;
+  width: clamp(72px, 28%, 150px);
+  aspect-ratio: 1;
+  top: 50%;
+  left: 50%;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--art-ink) 28%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--art-bg) 76%, white 24%);
+  box-shadow: 0 16px 44px color-mix(in srgb, var(--art-ink) 15%, transparent), inset 0 0 0 7px rgba(255, 255, 255, .16);
+  transform: translate(-50%, -50%);
+}
+.course-artwork-mark svg { width: 60%; height: 60%; overflow: visible; fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.course-artwork-mark svg .is-solid { fill: currentColor; stroke: none; }
+.course-artwork-orbit { position: absolute; border: 1px solid color-mix(in srgb, var(--art-ink) 22%, transparent); border-radius: 50%; }
+.course-artwork-orbit-a { width: 46%; aspect-ratio: 1; right: -12%; bottom: -28%; }
+.course-artwork-orbit-b { width: 15%; aspect-ratio: 1; top: 11%; left: 8%; background: color-mix(in srgb, var(--art-pop) 80%, transparent); border: 0; }
+.course-artwork-index { display: flex; position: absolute; bottom: 9%; left: 7%; gap: 5px; }
+.course-artwork-index i { display: block; width: clamp(13px, 3vw, 29px); height: 3px; border-radius: 99px; background: var(--art-ink); opacity: .78; }
+.course-artwork-index i:nth-child(2) { width: clamp(7px, 1.5vw, 14px); opacity: .38; }
+.course-artwork-index i:nth-child(3) { width: 4px; background: var(--art-pop); opacity: 1; }
+
+.course-pin-media > .course-artwork,
+.course-spotlight-media > .course-artwork,
+.cx-media > .course-artwork,
+.public-shell .hero-film-media > .course-artwork,
+.public-shell .tutor-card-media > .course-artwork,
+.public-shell .hero-preview-card > .course-artwork { position: absolute; z-index: 1; inset: 0; }
+.learning-pulse-thumb > .course-artwork,
+.recent-course-thumb > .course-artwork,
+.course-compare-thumbs .course-artwork,
+.course-compare-cover > .course-artwork { position: absolute; inset: 0; }
+.public-shell .subject-list .course-artwork { width: 108px; height: 106px; border-radius: 11px; }
+
+.course-pin:hover .course-artwork,
+.recent-course-rail a:hover .course-artwork,
+.public-shell .hero-preview-card:hover .course-artwork { transform: scale(1.025); }
+.course-pin .course-artwork,
+.recent-course-rail .course-artwork,
+.public-shell .hero-preview-card .course-artwork { transition: transform .45s ease; }
+
+@media (max-width: 560px) {
+  .public-shell .subject-list .course-artwork { width: 86px; height: 92px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .course-artwork { transition: none !important; }
+}

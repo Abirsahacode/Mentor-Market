@@ -1,0 +1,35 @@
+import { Banknote, Clock3, Landmark, ReceiptText, WalletCards } from "lucide-react";
+import { useState } from "react";
+import api, { getErrorMessage } from "../api/axios.js";
+import Alert from "../components/Alert.jsx";
+import DataTable from "../components/DataTable.jsx";
+import EmptyState from "../components/EmptyState.jsx";
+import FormField from "../components/FormField.jsx";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import PageHeader from "../components/PageHeader.jsx";
+import StatCard from "../components/StatCard.jsx";
+import useApi from "../hooks/useApi.js";
+
+export function PaymentsPage() {
+  const { data, loading, error, reload } = useApi("/payments");
+  const { data: bookings } = useApi("/bookings");
+  const [form, setForm] = useState({ booking_id: "", payment_method: "bKash" });
+  const [message, setMessage] = useState("");
+  const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const payableBookings = (bookings || []).filter((booking) => ["confirmed", "completed"].includes(booking.status) && !data.some((payment) => Number(payment.booking_id) === Number(booking.id)));
+  const selectedBooking = payableBookings.find((booking) => Number(booking.id) === Number(form.booking_id));
+  const create = async (event) => { event.preventDefault(); try { await api.post("/payments", form); setMessage("Mock payment created. Mark it paid when ready."); setForm((current) => ({ ...current, booking_id: "" })); reload(); } catch (requestError) { setMessage(getErrorMessage(requestError)); } };
+  const markPaid = async (id) => { try { await api.patch(`/payments/${id}/pay`); reload(); } catch (requestError) { setMessage(getErrorMessage(requestError)); } };
+  const columns = [{ key: "id", label: "Payment" }, { key: "booking_id", label: "Booking" }, { key: "amount", label: "Amount", render: (value) => `৳${Number(value).toLocaleString()}` }, { key: "payment_method", label: "Method" }, { key: "status", label: "Status", render: (value) => <span className={`status-badge status-${value}`}>{value}</span> }, { key: "created_at", label: "Created", render: (value) => new Date(value).toLocaleDateString() }];
+  return <section className="finance-page"><PageHeader eyebrow="Demo wallet" title="Payments with a clear paper trail" description="Create and complete mock transactions safely. No real payment provider or money is contacted." /><div className="finance-notice"><WalletCards size={20} /><div><strong>Simulation mode</strong><p>Every action is stored in the project database so the workflow can be tested end to end.</p></div></div><div className="dashboard-grid finance-studio-grid"><form className="panel" onSubmit={create}><div className="panel-heading"><div><span className="panel-eyebrow">New transaction</span><h2>Create mock payment</h2></div><Banknote size={20} /></div><Alert type={message.includes("created") ? "success" : "error"}>{message}</Alert><FormField name="booking_id" label="Confirmed booking" value={form.booking_id} onChange={change} options={payableBookings.map((booking) => ({ value: booking.id, label: `#${booking.id} · ${booking.tutor_name} · ৳${Number(booking.payable_amount || 0).toLocaleString()}` }))} required />{selectedBooking ? <div className="payment-amount-preview"><span>Booking amount</span><strong>৳{Number(selectedBooking.payable_amount || 0).toLocaleString()}</strong><small>Derived from the selected class or accepted proposal.</small></div> : null}<FormField name="payment_method" label="Payment method" value={form.payment_method} onChange={change} options={["card", "bKash", "Nagad", "Rocket", "cash"]} /><button className="button" disabled={!selectedBooking}>Create payment</button></form><article className="panel panel-wide"><div className="panel-heading"><div><span className="panel-eyebrow">Ledger</span><h2>Payment history</h2></div><ReceiptText size={20} /></div><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <DataTable label="Payment history" rows={data} columns={columns} actions={(row) => row.status === "pending" && <button className="button button-tiny" onClick={() => markPaid(row.id)}>Mark paid</button>} /> : <EmptyState icon={ReceiptText} title="No transactions yet" text="Create a mock payment after a tutor confirms your class." />}</article></div></section>;
+}
+
+export function EarningsPage() {
+  const { data, loading, error, reload } = useApi("/tutors/earnings", {});
+  const [form, setForm] = useState({ amount: "", method: "bKash", account_details: "" });
+  const [message, setMessage] = useState("");
+  const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const withdraw = async (event) => { event.preventDefault(); try { await api.post("/tutors/withdrawals", form); setMessage("Withdrawal request sent."); reload(); } catch (requestError) { setMessage(getErrorMessage(requestError)); } };
+  if (loading) return <LoadingSpinner />;
+  return <section className="finance-page"><PageHeader eyebrow="Teaching business" title="Earnings, without the spreadsheet" description="Track mock income, platform commission, and withdrawal requests in one calm ledger." /><Alert>{error}</Alert><div className="stats-grid"><StatCard icon={Banknote} label="Paid earnings" value={`৳${Number(data.total_earnings || 0).toLocaleString()}`} hint="After platform commission" tone="green" /><StatCard icon={Clock3} label="Pending earnings" value={`৳${Number(data.pending_earnings || 0).toLocaleString()}`} hint="Awaiting payment" tone="amber" /><StatCard icon={ReceiptText} label="Payments" value={data.payment_count} hint="Transactions on record" /></div><div className="dashboard-grid finance-studio-grid"><article className="panel panel-wide"><div className="panel-heading"><div><span className="panel-eyebrow">Income ledger</span><h2>Recent payments</h2></div><ReceiptText size={20} /></div>{data.payments?.length ? <DataTable label="Recent earnings" rows={data.payments} columns={[{ key: "booking_id", label: "Booking" }, { key: "amount", label: "Gross", render: (v) => `৳${v}` }, { key: "commission", label: "Commission", render: (v) => `৳${v}` }, { key: "tutor_earning", label: "Net", render: (v) => `৳${v}` }, { key: "status", label: "Status" }]} /> : <EmptyState icon={ReceiptText} title="No earnings yet" text="Paid student bookings will appear here." />}</article><form className="panel" onSubmit={withdraw}><div className="panel-heading"><div><span className="panel-eyebrow">Payout</span><h2>Request withdrawal</h2></div><Landmark size={20} /></div><Alert type={message.includes("sent") ? "success" : "error"}>{message}</Alert><FormField name="amount" label="Amount (৳)" type="number" min="1" value={form.amount} onChange={change} required /><FormField name="method" label="Method" value={form.method} onChange={change} options={["bank", "bKash", "Nagad", "Rocket"]} /><FormField name="account_details" label="Account details" value={form.account_details} onChange={change} required /><button className="button">Request withdrawal</button></form></div></section>;
+}
