@@ -6,23 +6,28 @@
 
 .public-shell,
 .auth-premium {
-  --pub-ink: #0e0f12;
-  --pub-graphite: #40434a;
-  --pub-muted: #686b73;
-  --pub-line: #d9dde3;
-  --pub-mist: #f5f7fa;
-  --pub-warm: #f3f0e8;
-  --pub-white: #fff;
-  --pub-jade: #10a37f;
-  --pub-jade-dark: #087f65;
-  --pub-jade-soft: #e5f6f1;
-  --pub-azure: #2b8fff;
-  --pub-azure-soft: #e5f1ff;
-  --pub-radius-sm: 10px;
-  --pub-radius: 16px;
-  --pub-radius-lg: 24px;
-  --pub-shadow-sm: 0 8px 28px rgba(14, 15, 18, .06);
-  --pub-shadow: 0 22px 60px rgba(14, 15, 18, .1);
+  --pub-ink: var(--color-ink);
+  --pub-graphite: var(--color-ink-soft);
+  --pub-muted: var(--color-muted);
+  --pub-line: var(--color-line);
+  --pub-mist: var(--color-canvas);
+  --pub-warm: var(--color-clay-soft);
+  --pub-white: var(--color-surface);
+  /* Legacy accent names remain as aliases while the public components move
+     to the atelier palette. */
+  --pub-jade: var(--color-brand);
+  --pub-jade-dark: var(--color-brand-hover);
+  --pub-jade-soft: var(--color-brand-soft);
+  --pub-azure: var(--color-action);
+  --pub-azure-soft: var(--color-action-soft);
+  --pub-verified: var(--color-brand);
+  --pub-verified-soft: var(--color-brand-soft);
+  --pub-display: var(--font-display);
+  --pub-radius-sm: var(--radius-control);
+  --pub-radius: var(--radius-card);
+  --pub-radius-lg: var(--radius-feature);
+  --pub-shadow-sm: var(--shadow-sm);
+  --pub-shadow: var(--shadow-md);
   color: var(--pub-ink);
   background: var(--pub-mist);
   font-size: 16px;
@@ -30,7 +35,7 @@
 
 .public-shell *:focus-visible,
 .auth-premium *:focus-visible {
-  outline: 3px solid #2b8fff;
+  outline: 3px solid rgba(var(--action-rgb), .42);
   outline-offset: 3px;
 }
 
@@ -95,7 +100,7 @@
 .public-shell .public-nav-scrim { display: none; }
 
 /* Route and long-page polish */
-.public-shell .public-route-frame { animation: public-route-enter .38s cubic-bezier(.2, .75, .2, 1) both; }
+.public-shell .public-route-frame { animation: public-route-enter .38s cubic-bezier(.2, .75, .2, 1); }
 @keyframes public-route-enter { from { opacity: .65; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 .public-shell .public-back-to-top { position: fixed; z-index: 70; right: 22px; bottom: 22px; display: grid; visibility: hidden; width: 44px; height: 44px; padding: 0; place-items: center; border: 1px solid #3c4047; border-radius: 50%; background: rgba(14, 15, 18, .92); box-shadow: 0 12px 30px rgba(14, 15, 18, .2); color: #fff; opacity: 0; pointer-events: none; transform: translateY(12px); transition: visibility .2s ease, opacity .2s ease, transform .2s ease, background .2s ease; backdrop-filter: blur(10px); }
 .public-shell .public-back-to-top:hover { border-color: var(--pub-jade); background: var(--pub-jade-dark); }

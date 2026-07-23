@@ -237,7 +237,9 @@ export default function CourseDiscoveryPage() {
           {spotlight ? (
             <>
               <div className="course-spotlight-media">
-                <CourseArtwork subject={spotlight.subject} decorative={false} />
+                {spotlightTutor.avatar_url
+                  ? <img className="course-spotlight-portrait" src={spotlightTutor.avatar_url} alt={`${spotlightTutor.full_name}, ${spotlight.subject} mentor`} />
+                  : <CourseArtwork subject={spotlight.subject} decorative={false} />}
                 <span className="course-spotlight-signal"><i /> Featured preview</span>
                 <DemoVideo src={spotlight.demo_video_url} title={spotlight.title} variant="icon" />
               </div>

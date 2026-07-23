@@ -1,6 +1,8 @@
+export const isLiveClassUrl = (value = "") => /^https?:\/\/\S+$/i.test(String(value).trim());
+
 export const getLiveClassConfig = (value = "") => {
   const normalized = String(value || "").trim();
-  if (!normalized) return { type: "join", provider: "none", href: "" };
+  if (!isLiveClassUrl(normalized)) return { type: "join", provider: "none", href: "" };
 
   if (/youtube\.com|youtu\.be/i.test(normalized)) {
     return { type: "video", provider: "youtube", href: normalized };

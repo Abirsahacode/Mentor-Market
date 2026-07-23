@@ -1,25 +1,32 @@
 /* Premium authenticated workspace shell
    ------------------------------------------------------------ */
 .dashboard-shell {
-  --shell-rail-width: 236px;
-  --shell-rail-gutter: 10px;
-  --shell-offset: 256px;
-  --shell-topbar-height: 74px;
-  --shell-accent: #10a37f;
-  --shell-accent-deep: #087f65;
-  --shell-accent-rgb: 16, 163, 127;
-  --shell-canvas: #f3f5f2;
-  --shell-warm: #f3f0e8;
-  --shell-ink: #0e0f12;
-  --shell-graphite: #40434a;
-  --shell-muted: #686b73;
-  --shell-line: #d9dde3;
-  --shell-panel: rgba(255, 255, 255, .94);
-  --primary: #10a37f;
-  --primary-dark: #087f65;
-  --primary-soft: #e5f6f1;
-  --blue: #10a37f;
-  --blue-light: #e5f6f1;
+  --shell-rail-width: 224px;
+  --shell-rail-gutter: 0px;
+  --shell-offset: 224px;
+  --shell-topbar-height: 68px;
+  --atelier-brand: var(--color-brand);
+  --atelier-brand-deep: var(--color-brand-hover);
+  --atelier-brand-rgb: var(--brand-rgb);
+  --role-accent: var(--color-brand);
+  --role-accent-deep: var(--color-brand-hover);
+  --role-accent-rgb: var(--brand-rgb);
+  --role-soft: var(--color-brand-soft);
+  --shell-accent: var(--atelier-brand);
+  --shell-accent-deep: var(--atelier-brand-deep);
+  --shell-accent-rgb: var(--atelier-brand-rgb);
+  --shell-canvas: var(--color-canvas);
+  --shell-warm: #eee7dc;
+  --shell-ink: var(--color-ink);
+  --shell-graphite: var(--color-ink-soft);
+  --shell-muted: var(--color-muted);
+  --shell-line: var(--color-line);
+  --shell-panel: var(--color-surface);
+  --primary: var(--atelier-brand);
+  --primary-dark: var(--atelier-brand-deep);
+  --primary-soft: var(--color-brand-soft);
+  --blue: var(--atelier-brand);
+  --blue-light: var(--color-brand-soft);
   min-height: 100vh;
   background:
     radial-gradient(circle at 82% 2%, rgba(var(--shell-accent-rgb), .07), transparent 24rem),
@@ -28,25 +35,17 @@
 }
 
 .dashboard-role-tutor {
-  --shell-accent: #2b8fff;
-  --shell-accent-deep: #166fbe;
-  --shell-accent-rgb: 43, 143, 255;
-  --primary: #2b8fff;
-  --primary-dark: #166fbe;
-  --primary-soft: #eaf4ff;
-  --blue: #2b8fff;
-  --blue-light: #eaf4ff;
+  --role-accent: #477b78;
+  --role-accent-deep: #315f5d;
+  --role-accent-rgb: 71, 123, 120;
+  --role-soft: #e6f0ef;
 }
 
 .dashboard-role-admin {
-  --shell-accent: #a86522;
-  --shell-accent-deep: #7b4815;
-  --shell-accent-rgb: 168, 101, 34;
-  --primary: #a86522;
-  --primary-dark: #7b4815;
-  --primary-soft: #f7ede1;
-  --blue: #a86522;
-  --blue-light: #f7ede1;
+  --role-accent: #8a693f;
+  --role-accent-deep: #6f522f;
+  --role-accent-rgb: 138, 105, 63;
+  --role-soft: #f2eadf;
 }
 
 .dashboard-shell *,
@@ -367,7 +366,7 @@
 .dashboard-shell .topbar-profile[aria-expanded="true"] { border-color: #d9dde3; background: rgba(255, 255, 255, .8); }
 .dashboard-shell .user-copy { display: flex; min-width: 0; flex-direction: column; }
 .dashboard-shell .user-copy strong { overflow: hidden; color: #202227; font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
-.dashboard-shell .user-copy small { overflow: hidden; margin-top: 2px; color: #858a92; font-size: .73rem; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-shell .user-copy small { overflow: hidden; margin-top: 2px; color: var(--shell-muted); font-size: .73rem; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-shell .topbar-profile > svg { color: #8b9098; transition: transform .18s ease; }
 .dashboard-shell .topbar-profile[aria-expanded="true"] > svg { transform: rotate(180deg); }
 
@@ -461,7 +460,7 @@
   text-transform: uppercase;
 }
 .dashboard-shell .page-header .eyebrow i { width: 18px; height: 1px; background: currentColor; }
-.dashboard-shell .page-header h1 {
+.dashboard-shell .page-header :is(h1, h2) {
   margin: 0;
   color: var(--shell-ink);
   font-size: clamp(2rem, 1.7rem + .95vw, 2.8rem);
@@ -474,7 +473,7 @@
 
 .dashboard-shell .button {
   border-radius: 11px;
-  font-size: .82rem;
+  font-size: .875rem;
   box-shadow: 0 7px 18px rgba(var(--shell-accent-rgb), .12);
 }
 .dashboard-shell .button:not(.button-ghost):not(.button-danger):not(.button-white) { border-color: var(--shell-accent-deep); background: var(--shell-accent-deep); }
@@ -742,7 +741,7 @@
   .dashboard-shell .dashboard-main { padding: 94px 14px calc(106px + env(safe-area-inset-bottom, 0px)); }
   .dashboard-shell .dashboard-main:has(> .course-experience) { padding-top: 68px !important; padding-bottom: calc(106px + env(safe-area-inset-bottom, 0px)) !important; }
   .dashboard-shell .page-header { min-height: 0; margin-bottom: 22px; padding-bottom: 20px; align-items: flex-start; flex-direction: column; gap: 17px; }
-  .dashboard-shell .page-header h1 { font-size: clamp(2rem, 10vw, 2.6rem); }
+  .dashboard-shell .page-header :is(h1, h2) { font-size: clamp(2rem, 10vw, 2.6rem); }
   .dashboard-shell .page-header p { font-size: .8rem; }
   .dashboard-shell .page-actions { width: 100%; flex-wrap: wrap; }
   .dashboard-shell .page-actions > * { flex: 1 1 auto; }

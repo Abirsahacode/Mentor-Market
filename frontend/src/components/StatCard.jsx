@@ -4,11 +4,15 @@ export default function StatCard({ icon, label, value, hint, tone = "blue", tren
   return (
     <article className={`stat-card stat-${tone}`} aria-label={`${label}: ${displayValue}`}>
       <div className="stat-card-glow" aria-hidden="true" />
-      <div className="stat-card-top">
-        <span className="stat-icon" aria-hidden="true">{Icon ? <Icon size={20} strokeWidth={1.9} /> : icon}</span>
-        {trend && <span className="stat-trend">{trend}</span>}
+      <span className="stat-icon" aria-hidden="true">{Icon ? <Icon size={19} strokeWidth={1.9} /> : icon}</span>
+      <div className="stat-copy">
+        <p>{label}</p>
+        <div className="stat-value-line">
+          <strong>{displayValue}</strong>
+          {trend && <span className="stat-trend">{trend}</span>}
+        </div>
+        {hint && <small>{hint}</small>}
       </div>
-      <div className="stat-copy"><p>{label}</p><strong>{displayValue}</strong>{hint && <small>{hint}</small>}</div>
     </article>
   );
 }

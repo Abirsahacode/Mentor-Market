@@ -34,7 +34,6 @@ export default function TutorCard({
         <CourseArtwork subject={subjects[0] || "Learning"} />
         {tutor.avatar_url ? <img className="tutor-card-portrait" src={tutor.avatar_url} alt="" onError={(event) => { event.currentTarget.hidden = true; }} /> : null}
         <span className="tutor-preview-signal"><i /> {previewVideo && tutor.demo_video_url ? "Teaching preview" : subjects[0] || "Independent mentor"}</span>
-        <span className="media-caption"><small>Featured service</small><strong>{serviceTitle}</strong></span>
         <DemoVideo src={tutor.demo_video_url} title={`${tutor.full_name} — ${serviceTitle}`} variant="icon" />
       </div>
       <div className="tutor-card-body">
@@ -74,7 +73,6 @@ export default function TutorCard({
         <div className="tutor-card-rating"><Star size={15} fill="currentColor" /><strong>{rating ? rating.toFixed(1) : "New"}</strong>{rating > 0 && <span>{tutor.review_count ? `${tutor.review_count} review${tutor.review_count === 1 ? "" : "s"}` : "student rating"}</span>}<span className="tutor-experience">{tutor.experience_years || 0} years teaching</span></div>
         <div className="tag-row tutor-subjects">{subjects.slice(0, 2).map((subject) => <span className="tag" key={subject}>{subject}</span>)}{subjects.length > 2 && <span className="tag">+{subjects.length - 2}</span>}</div>
         <div className="tutor-card-facts"><span><MapPin size={15} /> {tutor.location || "Remote"}</span><span>{tutor.teaching_mode || "Both"}</span></div>
-        {tutor.availability && <p className="tutor-card-availability">{tutor.availability}</p>}
         <div className="card-footer">
           <div className="price-lockup"><small>From</small><strong>৳{Number(tutor.hourly_rate || 0).toLocaleString()} <em>/ hour</em></strong></div>
           <Link className="card-link" to={`/tutors/${tutor.user_id}`}>View profile <ArrowRight size={16} /></Link>

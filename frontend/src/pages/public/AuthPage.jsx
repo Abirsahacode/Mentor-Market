@@ -5,9 +5,7 @@ import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { getErrorMessage } from "../../api/axios.js";
 import Alert from "../../components/Alert.jsx";
-import AmbientVideo from "../../components/AmbientVideo.jsx";
 import Brand from "../../components/Brand.jsx";
-import DemoVideo from "../../components/DemoVideo.jsx";
 import FormField from "../../components/FormField.jsx";
 import useAuth from "../../hooks/useAuth.js";
 import { roleHome } from "../../utils/roleHome.js";
@@ -40,24 +38,18 @@ export default function AuthPage({ mode }) {
   const useDemo = (email) => setForm((current) => ({ ...current, email, password: "Password123!" }));
   const passwordChecks = [form.password.length >= 8, /[A-Z]/.test(form.password), /[0-9]/.test(form.password), /[^A-Za-z0-9]/.test(form.password)];
   const passwordScore = passwordChecks.filter(Boolean).length;
-  const storyMedia = isLogin ? { video: "/media/physics-demo.mp4", poster: "/media/physics-studio.svg", subject: "Physics", title: "Mechanics Exam Sprint" } : form.role === "tutor" ? { video: "/media/code-demo.mp4", poster: "/media/code-studio.svg", subject: "Programming", title: "Learn by building" } : { video: "/media/math-demo.mp4", poster: "/media/math-studio.svg", subject: "Mathematics", title: "Ideas made visible" };
-
   return (
     <main className="auth-page auth-premium">
       <section className="auth-story" aria-label="Mentor Market preview">
-        <AmbientVideo key={storyMedia.video} className="auth-story-video" src={storyMedia.video} poster={storyMedia.poster} label="background learning preview" decorative />
+        <img className="auth-story-video" src="/media/mentor-session-atelier.webp" alt="" aria-hidden="true" />
         <div className="auth-story-shade" />
         <div className="auth-story-top"><Brand light /><Link to="/"><ArrowLeft size={15} /> Back to site</Link></div>
         <div className="auth-story-content">
-          <span className="auth-overline"><i /> Learning, in motion</span>
-          <h1>{isLogin ? <>Pick up where<br />you left off.</> : form.role === "tutor" ? <>Teach what<br />you know well.</> : <>Find the person<br />who makes it click.</>}</h1>
-          <p>{isLogin ? "Your classes, messages, coursework, and next steps are waiting in one calm workspace." : form.role === "tutor" ? "Show your approach, connect with the right students, and keep the work organized." : "Watch teaching previews, compare context, and begin with a class that feels right."}</p>
+          <span className="auth-overline"><i /> A more human marketplace</span>
+          <h1>{isLogin ? <>Welcome back<br />to your learning.</> : form.role === "tutor" ? <>Teach with clarity.<br />Grow with purpose.</> : <>Start with someone<br />who makes it click.</>}</h1>
+          <p>{isLogin ? "Your classes, messages, coursework, and next steps are together in one calm workspace." : form.role === "tutor" ? "Show students how you teach, connect with the right learners, and keep every class organized." : "Preview teaching styles, compare useful context, and begin with a class that feels right."}</p>
         </div>
-        <div className="auth-preview-card">
-          <div><span><i /> Previewing · {storyMedia.subject}</span><strong>{storyMedia.title}</strong><small>A short look at the video-first marketplace.</small></div>
-          <DemoVideo src={storyMedia.video} poster={storyMedia.poster} title={storyMedia.title} variant="icon" />
-        </div>
-        <div className="auth-story-foot"><ShieldCheck size={16} /><span>JWT-secured accounts · Role-based workspaces</span><small>University software engineering project</small></div>
+        <div className="auth-story-foot"><ShieldCheck size={16} /><span>Reviewed profiles · Clear schedules · Teaching previews</span></div>
       </section>
 
       <section className="auth-form-wrap">

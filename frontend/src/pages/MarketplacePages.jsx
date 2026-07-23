@@ -7,14 +7,15 @@ import AccessibleDialog from "../components/AccessibleDialog.jsx";
 import DataTable from "../components/DataTable.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import FormField from "../components/FormField.jsx";
+import LiveClassAction from "../components/LiveClassAction.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequestCard from "../components/RequestCard.jsx";
 import ResourcePage from "../components/ResourcePage.jsx";
 import TutorCard from "../components/TutorCard.jsx";
-import LiveClassAction from "../components/LiveClassAction.jsx";
 import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
+import { isLiveClassUrl } from "../utils/liveClass.js";
 
 const status = (value) => <span className={`status-badge status-${value}`}>{value}</span>;
 
@@ -154,7 +155,7 @@ export function BookingsPage() {
       key: "meeting_link_or_location",
       label: "Session",
       render: (value, row) => {
-        if (row.mode === "online" && value) {
+        if (row.mode === "online" && isLiveClassUrl(value)) {
           return (
             <LiveClassAction
               href={value}
@@ -174,12 +175,16 @@ export function BookingsPage() {
     return (
       <>
         {user.role === "tutor" && row.status === "pending" && (
-          <button className="button button-tiny" type="button" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "confirmed")}>{pending ? "Updating…" : "Confirm"}</button>
+          <button className="button button-tiny" type="button" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "confirmed")}>
+            {pending ? "Updating…" : "Confirm"}
+          </button>
         )}
         {user.role === "tutor" && row.status === "confirmed" && (
-          <button className="button button-tiny" type="button" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "completed")}>{pending ? "Updating…" : "Complete"}</button>
+          <button className="button button-tiny" type="button" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "completed")}>
+            {pending ? "Updating…" : "Complete"}
+          </button>
         )}
-        {row.mode === "online" && row.meeting_link_or_location && row.status === "confirmed" && (
+        {row.mode === "online" && isLiveClassUrl(row.meeting_link_or_location) && row.status === "confirmed" && (
           <LiveClassAction
             href={row.meeting_link_or_location}
             variant="button"
@@ -188,7 +193,9 @@ export function BookingsPage() {
           />
         )}
         {!["completed", "cancelled"].includes(row.status) && (
-          <button className="button button-tiny button-danger" type="button" disabled={pending} onClick={() => update(row.id, "cancelled")}>Cancel</button>
+          <button className="button button-tiny button-danger" type="button" disabled={pending} onClick={() => update(row.id, "cancelled")}>
+            Cancel
+          </button>
         )}
       </>
     );
