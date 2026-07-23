@@ -39,15 +39,22 @@ export default function StudentRequestsPage() {
     if (user) return null;
     return <Link className="request-card-link" to="/register?role=tutor" state={{ from: { pathname: "/tutor/requests", search: `?request=${request.id}` } }}>Respond <ArrowRight size={14} /></Link>;
   };
+  const heroAction = user?.role === "tutor"
+    ? { to: "/tutor/requests", label: "Open mentor workspace", eyebrow: "Live student briefs · Matched to your practice", meta: "Choose a brief to send a focused proposal." }
+    : user?.role === "student"
+      ? { to: "/student/create-request", label: "Post your learning brief", eyebrow: "Live student briefs · Start with your need", meta: "Post your own brief so mentors can respond thoughtfully." }
+      : user?.role === "admin"
+        ? { to: "/admin/student-requests", label: "Review brief board", eyebrow: "Live student briefs · Marketplace overview", meta: "Review active briefs from the marketplace workspace." }
+        : { to: "/register?role=tutor", label: "Join as a mentor", eyebrow: "Live student briefs · For mentors", meta: "Join as a mentor to send a proposal.", state: { from: { pathname: "/tutor/requests" } } };
 
   return <main className="opportunities-page">
     <header className="marketplace-header request-marketplace-header">
       <div className="container marketplace-header-grid">
         <div className="marketplace-header-copy">
-          <span className="page-index"><i /> Live student briefs · For mentors</span>
+          <span className="page-index"><i /> {heroAction.eyebrow}</span>
           <h1>Good teaching<br /><em>starts with a need.</em></h1>
           <p>Browse clear student briefs, find the ones that match your expertise, and respond with a thoughtful proposal.</p>
-          <div className="request-hero-actions"><Link className="button" to="/register?role=tutor">Join as a mentor <ArrowRight size={16} /></Link><a className="text-link" href="#open-requests">See open briefs</a></div>
+          <div className="request-hero-actions"><Link className="button" to={heroAction.to} state={heroAction.state}>{heroAction.label} <ArrowRight size={16} /></Link><a className="text-link" href="#open-requests">See open briefs</a></div>
         </div>
         <div className="brief-preview-board">
           <div className="brief-board-head"><span><i /> Open right now</span><strong>{loading ? "—" : String(requests.length).padStart(2, "0")}</strong></div>
@@ -61,7 +68,7 @@ export default function StudentRequestsPage() {
     <section className="container opportunities-body" id="open-requests">
       <div className="opportunities-toolbar"><div><span className="section-kicker">Fresh opportunities</span><h2>Find the right brief for you.</h2><p>Search by subject, level, or neighborhood.</p></div><label><Search size={17} /><input value={subject} onChange={(event) => updateSearch(event.target.value)} placeholder="Search briefs" aria-label="Search student briefs" /></label></div>
       <div className="request-topic-row"><span>Quick filter</span>{popularSubjects.map((item) => <button type="button" aria-pressed={subject === item} className={subject === item ? "active" : ""} key={item} onClick={() => updateSearch(subject === item ? "" : item)}>{item}</button>)}</div>
-      <div className="opportunities-meta" aria-live="polite"><span>{loading ? "Refreshing the board…" : `${total} open brief${total === 1 ? "" : "s"}`}</span><p><Send size={14} /> {user?.role === "tutor" ? "Choose a brief to send a focused proposal." : "Join as a mentor to send a proposal."}</p></div>
+      <div className="opportunities-meta" aria-live="polite"><span>{loading ? "Refreshing the board…" : `${total} open brief${total === 1 ? "" : "s"}`}</span><p><Send size={14} /> {heroAction.meta}</p></div>
       <Alert>{error}</Alert><div aria-busy={loading}>{loading ? <LoadingSpinner label="Loading requests" /> : requests.length ? <><div className="card-grid request-grid">{requests.map((request) => <RequestCard key={request.id} request={request} anonymizeStudent action={requestAction(request)} />)}</div><Pagination page={page} pages={pages} onChange={changePage} label="Student brief pages" /></> : <EmptyState title="No open requests" text="Try another subject or check back when students post new briefs." />}</div>
     </section>
   </main>;

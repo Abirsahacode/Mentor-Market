@@ -302,12 +302,12 @@ export default function CourseDiscoveryPage() {
       <div className="course-feed-controls">
         <div className="course-topic-scroll" aria-label="Course subjects">
           {subjects.map((item) => (
-            <button type="button" className={subject === item ? "active" : ""} onClick={() => setSubject(item)} key={item}>
+            <button type="button" className={subject === item ? "active" : ""} aria-pressed={subject === item} onClick={() => setSubject(item)} key={item}>
               {item}{item !== "All" && <small>{courses.filter((course) => course.subject === item).length}</small>}
             </button>
           ))}
         </div>
-        <button type="button" className={`course-filter-toggle ${activeFilterCount ? "active" : ""}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}>
+        <button type="button" className={`course-filter-toggle ${activeFilterCount ? "active" : ""}`} onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen} aria-controls="course-advanced-filters">
           <SlidersHorizontal size={15} /> Filters{activeFilterCount ? <b>{activeFilterCount}</b> : null}
         </button>
         <label className="course-sort">
@@ -322,11 +322,11 @@ export default function CourseDiscoveryPage() {
       </div>
 
       {filtersOpen && (
-        <div className="course-advanced-filters">
+        <div className="course-advanced-filters" id="course-advanced-filters">
           <div>
             <span>Teaching format</span>
             <div className="course-mode-options">
-              {["all", "online", "offline"].map((item) => <button type="button" className={mode === item ? "active" : ""} onClick={() => setMode(item)} key={item}>{item}</button>)}
+              {["all", "online", "offline"].map((item) => <button type="button" className={mode === item ? "active" : ""} aria-pressed={mode === item} onClick={() => setMode(item)} key={item}>{item}</button>)}
             </div>
           </div>
           <label className="course-trial-filter">

@@ -1,12 +1,15 @@
 import { Play, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useReducedMotion from "../hooks/useReducedMotion.js";
 
 export default function DemoVideo({ src, poster, title = "Tutor demo lesson", label = "Watch demo", variant = "button", captionsSrc, transcript }) {
   const [open, setOpen] = useState(false);
+  const reducedMotion = useReducedMotion();
   const triggerRef = useRef(null);
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
+  const previewNoteId = useId();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -56,8 +59,11 @@ export default function DemoVideo({ src, poster, title = "Tutor demo lesson", la
       <div className="media-modal" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
         <div ref={dialogRef} className="media-dialog" tabIndex="-1">
           <div className="media-dialog-head"><div><span>Demo lesson</span><h2>{title}</h2></div><button ref={closeRef} type="button" onClick={() => setOpen(false)} aria-label="Close video"><X size={20} /></button></div>
-          <video controls autoPlay playsInline poster={poster} src={src}>{captionsSrc ? <track kind="captions" src={captionsSrc} srcLang="en" label="English" default /> : null}Your browser does not support embedded video.</video>
-          <p>This is a short service preview. Message the tutor for lesson details and availability.</p>
+          <video controls autoPlay={!reducedMotion} playsInline poster={poster} src={src} aria-describedby={previewNoteId}>{captionsSrc ? <track kind="captions" src={captionsSrc} srcLang="en" label="English" default /> : null}Your browser does not support embedded video.</video>
+          <div className="media-preview-note" id={previewNoteId}>
+            <p>This is a short service preview. Message the tutor for lesson details and availability.</p>
+            {!captionsSrc && !transcript ? <span className="media-caption-status">Captions and a transcript are not available for this preview.</span> : null}
+          </div>
           {transcript ? <details className="media-transcript"><summary>Read transcript</summary><p>{transcript}</p></details> : null}
         </div>
       </div>, document.body,
