@@ -12,6 +12,7 @@ import UserAvatar from "../components/UserAvatar.jsx";
 import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
 import { firstDisplayName } from "../utils/formatters.js";
+import { isLiveClassUrl } from "../utils/liveClass.js";
 
 const today = () => new Date().toLocaleDateString("en-GB", {
   weekday: "long",
@@ -250,7 +251,7 @@ function UserDashboard({ role, displayName }) {
               <div>
                 <strong>{isStudent ? booking.tutor_name : booking.student_name}</strong>
                 <p><Clock3 size={13} /> {booking.class_time?.slice(0, 5)} · {booking.class_type} · {booking.mode}</p>
-                {booking.mode === "online" && booking.meeting_link_or_location && booking.status === "confirmed" ? (
+                {booking.mode === "online" && isLiveClassUrl(booking.meeting_link_or_location) && booking.status === "confirmed" ? (
                   <LiveClassAction
                     href={booking.meeting_link_or_location}
                     variant="link"

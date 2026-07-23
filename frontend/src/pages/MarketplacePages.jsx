@@ -15,6 +15,7 @@ import ResourcePage from "../components/ResourcePage.jsx";
 import TutorCard from "../components/TutorCard.jsx";
 import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
+import { isLiveClassUrl } from "../utils/liveClass.js";
 
 const status = (value) => <span className={`status-badge status-${value}`}>{value}</span>;
 
@@ -154,7 +155,7 @@ export function BookingsPage() {
       key: "meeting_link_or_location",
       label: "Session",
       render: (value, row) => {
-        if (row.mode === "online" && value) {
+        if (row.mode === "online" && isLiveClassUrl(value)) {
           return (
             <LiveClassAction
               href={value}
@@ -183,7 +184,7 @@ export function BookingsPage() {
             {pending ? "Updating…" : "Complete"}
           </button>
         )}
-        {row.mode === "online" && row.meeting_link_or_location && row.status === "confirmed" && (
+        {row.mode === "online" && isLiveClassUrl(row.meeting_link_or_location) && row.status === "confirmed" && (
           <LiveClassAction
             href={row.meeting_link_or_location}
             variant="button"
