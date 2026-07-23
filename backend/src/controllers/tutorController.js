@@ -1,35 +1,15 @@
 import db from "../config/db.js";
 import TutorProfile from "../models/TutorProfile.js";
 import WithdrawalRequest from "../models/WithdrawalRequest.js";
-import { DAY_TOKENS } from "../utils/availability.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { getPagination } from "../utils/pagination.js";
 import { sendSuccess } from "../utils/respond.js";
 
-const parseCsv = (value) => (value ? String(value).split(",").map((item) => item.trim()).filter(Boolean) : []);
-
 export const searchTutors = asyncHandler(async (req, res) => {
   const { page, limit, offset } = getPagination(req.query);
-  const filters = {
-    subjects: parseCsv(req.query.subject),
-    location: req.query.location || "",
-    mode: req.query.mode,
-    minPrice: req.query.minPrice,
-    maxPrice: req.query.maxPrice,
-    minRating: req.query.minRating,
-    days: parseCsv(req.query.days).map((day) => day.toLowerCase()).filter((day) => DAY_TOKENS.includes(day)),
-    q: req.query.q || "",
-    sort: req.query.sort,
-    limit,
-    offset,
-  };
-  const { rows, total } = await TutorProfile.search(filters);
-  sendSuccess(res, rows, "Tutors loaded", 200, { page, limit, total, pages: Math.max(Math.ceil(total / limit), 1) });
-});
-
-export const listSubjects = asyncHandler(async (req, res) => {
-  sendSuccess(res, await TutorProfile.listDistinctSubjects(), "Subjects loaded");
+  const { rows, total } = await TutorProfile.search({ ...req.query, limit, offset });
+  sendSuccess(res, rows, "Tutors loaded", 200, { page, limit, total, pages: Math.ceil(total / limit) });
 });
 
 export const getTutor = asyncHandler(async (req, res) => {

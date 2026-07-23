@@ -1,4 +1,4 @@
-import { body, query } from "express-validator";
+import { body } from "express-validator";
 
 export const registerRules = [
   body("full_name").trim().isLength({ min: 2, max: 100 }).withMessage("must be 2-100 characters"),
@@ -15,22 +15,28 @@ export const loginRules = [
 export const requiredFields = (...fields) => fields.map((field) =>
   body(field).notEmpty().withMessage("is required"));
 
-// The search endpoint previously accepted any query string unchecked, which
-// let a malformed value (e.g. maxPrice=abc) silently produce a broken or
-// meaningless SQL comparison instead of a clear 422. Every filter is
-// optional; only its shape is validated here, the actual filtering logic
-// lives in tutorSearchQueryBuilder.js.
-export const searchTutorRules = [
-  query("subject").optional().isString().trim().isLength({ max: 200 }).withMessage("must be a short list of subjects"),
-  query("location").optional().isString().trim().isLength({ max: 150 }).withMessage("must be under 150 characters"),
-  query("mode").optional().isIn(["online", "offline"]).withMessage("must be online or offline"),
-  query("minPrice").optional().isFloat({ min: 0 }).withMessage("must be a positive number"),
-  query("maxPrice").optional().isFloat({ min: 0 }).withMessage("must be a positive number"),
-  query("minRating").optional().isFloat({ min: 0, max: 5 }).withMessage("must be between 0 and 5"),
-  query("days").optional().isString().trim().isLength({ max: 40 }).withMessage("must be a short list of days"),
-  query("q").optional().isString().trim().isLength({ max: 120 }).withMessage("must be under 120 characters"),
-  query("sort").optional().isIn(["recommended", "rating", "price", "experience", "newest"]).withMessage("is not a supported sort option"),
-  query("page").optional().isInt({ min: 1 }).withMessage("must be a positive integer"),
-  query("limit").optional().isInt({ min: 1, max: 100 }).withMessage("must be between 1 and 100"),
+const subjectsRules = (field) => [
+  body(field).optional().isArray({ max: 20 }).withMessage("must be a list of up to 20 subjects"),
+  body(`${field}.*`).optional().isString().trim().isLength({ min: 1, max: 60 }).withMessage("must be 1-60 characters"),
+];
+
+export const studentProfileRules = [
+  body("class_level").optional({ checkFalsy: true }).trim().isLength({ max: 80 }).withMessage("must be at most 80 characters"),
+  body("institution").optional({ checkFalsy: true }).trim().isLength({ max: 150 }).withMessage("must be at most 150 characters"),
+  body("location").optional({ checkFalsy: true }).trim().isLength({ max: 150 }).withMessage("must be at most 150 characters"),
+  ...subjectsRules("subjects"),
+  body("learning_goals").optional({ checkFalsy: true }).trim().isLength({ max: 2000 }).withMessage("must be at most 2000 characters"),
+  body("bio").optional({ checkFalsy: true }).trim().isLength({ max: 2000 }).withMessage("must be at most 2000 characters"),
+];
+
+export const tutorProfileRules = [
+  body("qualifications").optional({ checkFalsy: true }).trim().isLength({ max: 2000 }).withMessage("must be at most 2000 characters"),
+  body("experience_years").optional({ checkFalsy: true }).isFloat({ min: 0, max: 60 }).withMessage("must be between 0 and 60"),
+  ...subjectsRules("subjects"),
+  body("teaching_mode").optional({ checkFalsy: true }).isIn(["online", "offline", "both"]).withMessage("must be online, offline, or both"),
+  body("hourly_rate").optional({ checkFalsy: true }).isFloat({ min: 0, max: 100000 }).withMessage("must be between 0 and 100000"),
+  body("location").optional({ checkFalsy: true }).trim().isLength({ max: 150 }).withMessage("must be at most 150 characters"),
+  body("availability").optional({ checkFalsy: true }).trim().isLength({ max: 255 }).withMessage("must be at most 255 characters"),
+  body("bio").optional({ checkFalsy: true }).trim().isLength({ max: 2000 }).withMessage("must be at most 2000 characters"),
 ];
 
