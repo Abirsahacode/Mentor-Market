@@ -16,3 +16,16 @@ test("generateAvailabilitySlots produces recurring tutor slots and excludes exis
   assert.equal(slots.some((slot) => slot.date === "2026-07-21" && slot.time === "10:00"), false);
   assert.ok(slots.some((slot) => slot.date === "2026-07-24" && slot.time === "16:00"));
 });
+
+test("generateAvailabilitySlots handles seeded availability text like Sun-Thu, 5 PM-9 PM", () => {
+  const slots = generateAvailabilitySlots({
+    availabilityText: "Sun-Thu, 5 PM-9 PM",
+    fromDate: "2026-07-20",
+    toDate: "2026-07-24",
+    existingBookings: [],
+  });
+
+  assert.ok(slots.length > 0);
+  assert.ok(slots.some((slot) => slot.date === "2026-07-20" && slot.time === "17:00"));
+  assert.ok(slots.some((slot) => slot.date === "2026-07-24" && slot.time === "20:00"));
+});
