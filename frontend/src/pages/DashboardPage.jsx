@@ -5,8 +5,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Alert from "../components/Alert.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import LiveClassAction from "../components/LiveClassAction.jsx";
-import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import { SkeletonCard, SkeletonStat } from "../components/Skeleton.jsx";
 import StatCard from "../components/StatCard.jsx";
 import UserAvatar from "../components/UserAvatar.jsx";
 import useApi from "../hooks/useApi.js";
@@ -70,16 +71,40 @@ function TodayMasthead({
   );
 }
 
+function DashboardSkeleton({ label = "Loading dashboard" }) {
+  return (
+    <>
+      <SkeletonCard count={1} label={`${label} overview`} />
+      <SkeletonStat count={4} label={`${label} summary`} />
+      <SkeletonCard count={2} label={`${label} workspace`} />
+    </>
+  );
+}
+
 function AdminDashboard({ displayName }) {
-  const { data, loading, error } = useApi("/admin/dashboard", {});
-  if (loading) return <LoadingSpinner label="Loading dashboard" />;
+  const { data, loading, error, reload } = useApi("/admin/dashboard", {});
+  if (loading) return <DashboardSkeleton label="Loading marketplace dashboard" />;
+  if (error && !Object.keys(data || {}).length) {
+    return (
+      <>
+        <Alert>{error}</Alert>
+        <EmptyState
+          icon={ShieldAlert}
+          title="The marketplace dashboard could not load"
+          description="Try the request again to restore the latest marketplace totals and review queues."
+          action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+        />
+      </>
+    );
+  }
 
   const maxSubject = Math.max(...(data.popular_subjects || []).map((item) => Number(item.total)), 1);
+  const popularSubjects = data.popular_subjects || [];
   const attentionTotal = Number(data.pending_verifications || 0) + Number(data.open_reports || 0);
 
   return (
     <>
-      <Alert>{error}</Alert>
+      <Alert>{error ? <>{error}<span className="alert-actions"><button type="button" className="button button-tiny button-ghost" onClick={reload}>Try again</button></span></> : null}</Alert>
       <TodayMasthead
         role="admin"
         displayName={displayName}
@@ -117,8 +142,8 @@ function AdminDashboard({ displayName }) {
             <div><span className="panel-eyebrow">Learning demand</span><h2>Popular subjects</h2></div>
             <span className="panel-period">All time</span>
           </div>
-          <div className="analytics-bars">
-            {data.popular_subjects?.map((item, index) => (
+          {popularSubjects.length ? <div className="analytics-bars">
+            {popularSubjects.map((item, index) => (
               <div key={item.subject}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <strong>{item.subject}</strong>
@@ -126,7 +151,15 @@ function AdminDashboard({ displayName }) {
                 <b>{item.total}</b>
               </div>
             ))}
-          </div>
+          </div> : (
+            <EmptyState
+              className="empty-state-compact"
+              icon={BarChart3}
+              title="No subject activity yet"
+              description="Learning demand will appear as students publish requests."
+              action={<Link className="button button-ghost" to="/admin/student-requests">Review student requests</Link>}
+            />
+          )}
         </article>
 
         <article className="panel trust-queue">
@@ -188,7 +221,7 @@ function UserDashboard({ role, displayName }) {
   const applications = useApi("/applications");
   const third = useApi(role === "student" ? "/students/progress" : "/tutors/earnings", {});
   const loading = bookings.loading || applications.loading || third.loading;
-  if (loading) return <LoadingSpinner label="Loading dashboard" />;
+  if (loading) return <DashboardSkeleton label={`Loading ${role} dashboard`} />;
 
   const bookingRows = Array.isArray(bookings.data) ? bookings.data : [];
   const applicationRows = Array.isArray(applications.data) ? applications.data : [];
@@ -204,10 +237,16 @@ function UserDashboard({ role, displayName }) {
   const primaryAction = role === "student" ? "/student/create-request" : "/tutor/create-service";
   const browseAction = role === "student" ? "/student/tutors" : "/tutor/requests";
   const isStudent = role === "student";
+  const dashboardError = bookings.error || applications.error || third.error;
+  const retryDashboard = () => {
+    bookings.reload();
+    applications.reload();
+    third.reload();
+  };
 
   return (
     <>
-      <Alert>{bookings.error || applications.error || third.error}</Alert>
+      <Alert>{dashboardError ? <>{dashboardError}<span className="alert-actions"><button type="button" className="button button-tiny button-ghost" onClick={retryDashboard}>Try again</button></span></> : null}</Alert>
       <TodayMasthead
         role={role}
         displayName={displayName}
@@ -263,7 +302,19 @@ function UserDashboard({ role, displayName }) {
               <span className={`status-badge status-${booking.status}`}>{booking.status}</span>
             </div>
           )) : (
-            <div className="calm-empty"><CalendarDays size={23} /><strong>Your week is open</strong><p>Newly booked classes will appear here.</p></div>
+            <EmptyState
+              className="empty-state-compact"
+              icon={CalendarDays}
+              title="No classes scheduled"
+              description={isStudent
+                ? "Choose a tutor and request a time to start building your learning week."
+                : "Browse current student requests and send a proposal that fits your schedule."}
+              action={(
+                <Link className="button button-ghost" to={browseAction}>
+                  {isStudent ? "Browse tutors" : "Browse student requests"}
+                </Link>
+              )}
+            />
           )}
         </article>
 

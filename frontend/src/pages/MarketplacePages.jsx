@@ -1,4 +1,4 @@
-import { BookMarked, CalendarDays, FileCheck2, Search, Star, UsersRound } from "lucide-react";
+import { AlertCircle, BookMarked, CalendarDays, FileCheck2, Search, Star, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
@@ -8,10 +8,10 @@ import DataTable from "../components/DataTable.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import FormField from "../components/FormField.jsx";
 import LiveClassAction from "../components/LiveClassAction.jsx";
-import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequestCard from "../components/RequestCard.jsx";
 import ResourcePage from "../components/ResourcePage.jsx";
+import { SkeletonCard, SkeletonTable } from "../components/Skeleton.jsx";
 import TutorCard from "../components/TutorCard.jsx";
 import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
@@ -31,11 +31,31 @@ export function MyListingsPage({ type }) {
     { key: "teaching_mode", label: "Mode" }, { key: "status", label: "Status", render: status },
   ];
   const actions = (row, reload) => <><button className="button button-tiny button-ghost" onClick={async () => { await api.patch(`${isRequest ? "/student-requests" : "/tutor-posts"}/${row.id}`, { status: isRequest ? "closed" : row.status === "active" ? "inactive" : "active" }); reload(); }}>{isRequest ? "Close" : row.status === "active" ? "Pause" : "Activate"}</button><button className="button button-tiny button-danger" onClick={async () => { if (window.confirm("Delete this item?")) { await api.delete(`${isRequest ? "/student-requests" : "/tutor-posts"}/${row.id}`); reload(); } }}>Delete</button></>;
-  return <ResourcePage title={isRequest ? "My tutor requests" : "My service posts"} description={isRequest ? "Track responses and manage what you are currently looking for." : "Manage the teaching offers students can discover."} endpoint={endpoint} columns={columns} createPath={isRequest ? "/student/create-request" : "/tutor/create-service"} createLabel={isRequest ? "Post a request" : "Create service"} actions={actions} />;
+  const createPath = isRequest ? "/student/create-request" : "/tutor/create-service";
+  const createLabel = isRequest ? "Post a request" : "Create service";
+  return (
+    <ResourcePage
+      title={isRequest ? "My tutor requests" : "My service posts"}
+      description={isRequest ? "Track responses and manage what you are currently looking for." : "Manage the teaching offers students can discover."}
+      endpoint={endpoint}
+      columns={columns}
+      createPath={createPath}
+      createLabel={createLabel}
+      actions={actions}
+      emptyState={{
+        icon: FileCheck2,
+        title: isRequest ? "No tutor requests yet" : "No service posts yet",
+        description: isRequest
+          ? "Post what you want to learn so tutors can respond with a focused proposal."
+          : "Create a teaching offer so students can discover your expertise.",
+        action: <Link className="button button-ghost" to={createPath}>{createLabel}</Link>,
+      }}
+    />
+  );
 }
 
 export function DashboardTutorsPage() {
-  const { data, loading, error } = useApi("/tutors?limit=100");
+  const { data, loading, error, reload } = useApi("/tutors?limit=100");
   const [saveStates, setSaveStates] = useState({});
   const save = async (id) => {
     setSaveStates((current) => ({ ...current, [id]: { status: "pending", message: "" } }));
@@ -46,11 +66,43 @@ export function DashboardTutorsPage() {
       setSaveStates((current) => ({ ...current, [id]: { status: "error", message: getErrorMessage(requestError) } }));
     }
   };
-  return <section className="dashboard-marketplace-page"><PageHeader eyebrow="Mentor directory" title="Browse tutors" description="Explore verified, experienced tutors and save the people whose teaching style feels right." actions={<Link className="button button-ghost" to="/tutors"><Search size={15} /> Advanced filters</Link>} /><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <div className="card-grid">{data.map((tutor) => { const saveState = saveStates[tutor.user_id] || {}; return <TutorCard tutor={tutor} key={tutor.user_id} onSave={save} saveStatus={saveState.status} saveFeedback={saveState.message} />; })}</div> : <EmptyState icon={UsersRound} title="No mentors found" text="New mentor profiles will appear here as they join." />}</section>;
+  return (
+    <section className="dashboard-marketplace-page">
+      <PageHeader
+        eyebrow="Mentor directory"
+        title="Browse tutors"
+        description="Explore verified, experienced tutors and save the people whose teaching style feels right."
+        actions={<Link className="button button-ghost" to="/tutors"><Search size={15} /> Advanced filters</Link>}
+      />
+      <Alert>{error}</Alert>
+      {loading ? (
+        <SkeletonCard count={6} label="Loading tutors" />
+      ) : data.length ? (
+        <div className="card-grid">{data.map((tutor) => {
+          const saveState = saveStates[tutor.user_id] || {};
+          return <TutorCard tutor={tutor} key={tutor.user_id} onSave={save} saveStatus={saveState.status} saveFeedback={saveState.message} />;
+        })}</div>
+      ) : error ? (
+        <EmptyState
+          icon={AlertCircle}
+          title="Tutors could not load"
+          description="Try again to restore the latest mentor profiles."
+          action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+        />
+      ) : (
+        <EmptyState
+          icon={UsersRound}
+          title="No mentors are available yet"
+          description="Post your learning need so tutors can respond when the right expertise becomes available."
+          action={<Link className="button button-ghost" to="/student/create-request">Post what you need</Link>}
+        />
+      )}
+    </section>
+  );
 }
 
 export function SavedTutorsPage() {
-  const { data, setData, loading, error } = useApi("/students/saved-tutors");
+  const { data, setData, loading, error, reload } = useApi("/students/saved-tutors");
   const [removeStates, setRemoveStates] = useState({});
   const [message, setMessage] = useState("");
   const remove = async (id) => {
@@ -70,7 +122,35 @@ export function SavedTutorsPage() {
       setRemoveStates((current) => ({ ...current, [id]: { status: "error", message: getErrorMessage(requestError) } }));
     }
   };
-  return <section className="dashboard-marketplace-page"><PageHeader eyebrow="Your shortlist" title="Saved tutors" description="A focused set of mentors to revisit, compare, and contact when you are ready." /><Alert type="success">{message}</Alert><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <div className="card-grid">{data.map((tutor) => { const removeState = removeStates[tutor.user_id] || {}; return <TutorCard tutor={tutor} key={tutor.user_id} onSave={remove} saveAction="remove" saveStatus={removeState.status} saveFeedback={removeState.message} />; })}</div> : <EmptyState icon={BookMarked} title="No saved tutors" text="Save mentors from the directory to build your shortlist." />}</section>;
+  return (
+    <section className="dashboard-marketplace-page">
+      <PageHeader eyebrow="Your shortlist" title="Saved tutors" description="A focused set of mentors to revisit, compare, and contact when you are ready." />
+      <Alert type="success">{message}</Alert>
+      <Alert>{error}</Alert>
+      {loading ? (
+        <SkeletonCard count={3} label="Loading saved tutors" />
+      ) : data.length ? (
+        <div className="card-grid">{data.map((tutor) => {
+          const removeState = removeStates[tutor.user_id] || {};
+          return <TutorCard tutor={tutor} key={tutor.user_id} onSave={remove} saveAction="remove" saveStatus={removeState.status} saveFeedback={removeState.message} />;
+        })}</div>
+      ) : error ? (
+        <EmptyState
+          icon={AlertCircle}
+          title="Your saved tutors could not load"
+          description="Try again to restore your tutor shortlist."
+          action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+        />
+      ) : (
+        <EmptyState
+          icon={BookMarked}
+          title="No saved tutors"
+          description="Save mentors from the directory to build a shortlist you can revisit."
+          action={<Link className="button button-ghost" to="/student/tutors">Browse tutors</Link>}
+        />
+      )}
+    </section>
+  );
 }
 
 export function BrowseRequestsPage() {
@@ -97,7 +177,44 @@ export function BrowseRequestsPage() {
   const openProposal = (request) => { setSelected(request); setSearchParams({ request: String(request.id) }, { replace: true }); };
   const closeProposal = () => { setSelected(null); setSearchParams({}, { replace: true }); };
   const proposalTitleId = selected ? `proposal-title-${selected.id}` : undefined;
-  return <section className="dashboard-marketplace-page"><PageHeader eyebrow="Open opportunities" title="Browse student requests" description="Find specific learning needs that match your subjects, style, and schedule." /><Alert type={message.includes("success") ? "success" : "error"}>{message}</Alert><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <div className="card-grid">{data.map((request) => <RequestCard key={request.id} request={request} action={<button className="button button-small" onClick={() => openProposal(request)}>Send proposal</button>} />)}</div> : <EmptyState icon={Search} title="No open requests" text="New student learning needs will appear here." />}{selected && <AccessibleDialog as="form" onSubmit={apply} onClose={closeProposal} labelledBy={proposalTitleId}><button type="button" className="modal-close" onClick={closeProposal} aria-label="Close proposal dialog">×</button><span className="eyebrow">Apply to request</span><h2 id={proposalTitleId}>{selected.subject} · {selected.class_level}</h2><p className="modal-intro">Explain how you would approach this learner’s goal and be specific about time and price.</p><FormField name="proposal_message" label="Proposal message" as="textarea" value={form.proposal_message} onChange={change} required /><FormField name="expected_fee" label="Expected fee (৳)" type="number" value={form.expected_fee} onChange={change} required /><FormField name="available_time" label="Available time" value={form.available_time} onChange={change} required /><button className="button button-block" disabled={submitting} aria-busy={submitting || undefined}>{submitting ? "Sending proposal…" : "Submit proposal"}</button></AccessibleDialog>}</section>;
+  return (
+    <section className="dashboard-marketplace-page">
+      <PageHeader eyebrow="Open opportunities" title="Browse student requests" description="Find specific learning needs that match your subjects, style, and schedule." />
+      <Alert type={message.includes("success") ? "success" : "error"}>{message}</Alert>
+      <Alert>{error}</Alert>
+      {loading ? (
+        <SkeletonCard count={6} label="Loading student requests" />
+      ) : data.length ? (
+        <div className="card-grid">{data.map((request) => <RequestCard key={request.id} request={request} action={<button className="button button-small" onClick={() => openProposal(request)}>Send proposal</button>} />)}</div>
+      ) : error ? (
+        <EmptyState
+          icon={AlertCircle}
+          title="Student requests could not load"
+          description="Try again to restore the latest learning opportunities."
+          action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+        />
+      ) : (
+        <EmptyState
+          icon={Search}
+          title="No open student requests"
+          description="Publish a teaching offer while you wait for a matching learning brief."
+          action={<Link className="button button-ghost" to="/tutor/create-service">Create a service</Link>}
+        />
+      )}
+      {selected && (
+        <AccessibleDialog as="form" onSubmit={apply} onClose={closeProposal} labelledBy={proposalTitleId}>
+          <button type="button" className="modal-close" onClick={closeProposal} aria-label="Close proposal dialog">×</button>
+          <span className="eyebrow">Apply to request</span>
+          <h2 id={proposalTitleId}>{selected.subject} · {selected.class_level}</h2>
+          <p className="modal-intro">Explain how you would approach this learner’s goal and be specific about time and price.</p>
+          <FormField name="proposal_message" label="Proposal message" as="textarea" value={form.proposal_message} onChange={change} required />
+          <FormField name="expected_fee" label="Expected fee (৳)" type="number" value={form.expected_fee} onChange={change} required />
+          <FormField name="available_time" label="Available time" value={form.available_time} onChange={change} required />
+          <button className="button button-block" disabled={submitting} aria-busy={submitting || undefined}>{submitting ? "Sending proposal…" : "Submit proposal"}</button>
+        </AccessibleDialog>
+      )}
+    </section>
+  );
 }
 
 export function ApplicationsPage() {
@@ -129,7 +246,43 @@ export function ApplicationsPage() {
   ];
   const actions = user.role === "student" ? (row) => row.status === "pending" ? <><button className="button button-tiny" disabled={decision.status === "pending"} aria-busy={decision.id === row.id && decision.status === "pending" || undefined} onClick={() => decide(row, "accepted")}>{decision.id === row.id && decision.status === "pending" ? "Updating…" : "Accept"}</button><button className="button button-tiny button-danger" disabled={decision.status === "pending"} onClick={() => decide(row, "rejected")}>Reject</button></> : null : undefined;
   const decisionFeedback = decision.message ? <Alert type={decision.status === "success" ? "success" : "error"}>{decision.message}{decision.bookingId ? <span className="alert-actions"><Link to="/student/bookings">View class</Link><Link to={`/student/messages?recipient=${decision.tutorId}&name=${encodeURIComponent(decision.tutorName)}`}>Message mentor</Link></span> : null}</Alert> : null;
-  return <section><PageHeader eyebrow="Proposal desk" title={user.role === "student" ? "Applications received" : "Applications sent"} description={user.role === "student" ? "Compare approaches, availability, and price before choosing the best fit." : "Track every proposal and see where each conversation stands."} />{decisionFeedback}<Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <DataTable label="Applications" rows={data} columns={columns} actions={actions} /> : <EmptyState icon={FileCheck2} title="No applications yet" text="Proposals will appear here as the marketplace responds." />}</section>;
+  const isStudent = user.role === "student";
+  return (
+    <section>
+      <PageHeader
+        eyebrow="Proposal desk"
+        title={isStudent ? "Applications received" : "Applications sent"}
+        description={isStudent ? "Compare approaches, availability, and price before choosing the best fit." : "Track every proposal and see where each conversation stands."}
+      />
+      {decisionFeedback}
+      <Alert>{error}</Alert>
+      {loading ? (
+        <SkeletonTable columns={columns.length + (actions ? 1 : 0)} label="Loading applications" />
+      ) : data.length ? (
+        <DataTable label="Applications" rows={data} columns={columns} actions={actions} />
+      ) : error ? (
+        <EmptyState
+          icon={AlertCircle}
+          title="Applications could not load"
+          description="Try again to restore the latest proposals."
+          action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+        />
+      ) : (
+        <EmptyState
+          icon={FileCheck2}
+          title="No applications yet"
+          description={isStudent
+            ? "Post a learning request so tutors can respond with proposals."
+            : "Browse student requests and send a proposal that fits your expertise."}
+          action={(
+            <Link className="button button-ghost" to={isStudent ? "/student/create-request" : "/tutor/requests"}>
+              {isStudent ? "Post a request" : "Browse requests"}
+            </Link>
+          )}
+        />
+      )}
+    </section>
+  );
 }
 
 export function BookingsPage() {
@@ -200,15 +353,86 @@ export function BookingsPage() {
       </>
     );
   };
-  return <section><PageHeader eyebrow="Class calendar" title="My bookings" description="Manage upcoming classes, confirmations, and the sessions already completed." /><Alert type={bookingAction.status === "success" ? "success" : "error"}>{bookingAction.message}</Alert><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? <DataTable label="Bookings" rows={data} columns={columns} actions={actions} /> : <EmptyState icon={CalendarDays} title="No classes booked" text="Your class schedule will appear here after a booking is created." />}</section>;
+  const isStudent = user.role === "student";
+  return (
+    <section>
+      <PageHeader eyebrow="Class calendar" title="My bookings" description="Manage upcoming classes, confirmations, and the sessions already completed." />
+      <Alert type={bookingAction.status === "success" ? "success" : "error"}>{bookingAction.message}</Alert>
+      <Alert>{error}</Alert>
+      {loading ? (
+        <SkeletonTable columns={columns.length + 1} label="Loading bookings" />
+      ) : data.length ? (
+        <DataTable label="Bookings" rows={data} columns={columns} actions={actions} />
+      ) : error ? (
+        <EmptyState
+          icon={AlertCircle}
+          title="Bookings could not load"
+          description="Try again to restore your latest class schedule."
+          action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+        />
+      ) : (
+        <EmptyState
+          icon={CalendarDays}
+          title="No classes booked yet"
+          description={isStudent
+            ? "Browse tutors and request a time to start building your class schedule."
+            : "Find a student request that fits your expertise and send a proposal."
+          }
+          action={(
+            <Link className="button button-ghost" to={isStudent ? "/student/tutors" : "/tutor/requests"}>
+              {isStudent ? "Browse tutors" : "Browse student requests"}
+            </Link>
+          )}
+        />
+      )}
+    </section>
+  );
 }
 
 export function ReviewsPage() {
+  const { user } = useAuth();
   const { data, loading, error, reload } = useApi("/reviews");
   const { data: bookings } = useApi("/bookings?status=completed");
   const [form, setForm] = useState({ booking_id: "", rating: "5", comment: "" });
   const [message, setMessage] = useState("");
   const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   const submit = async (event) => { event.preventDefault(); try { await api.post("/reviews", form); setMessage("Review published."); reload(); } catch (requestError) { setMessage(getErrorMessage(requestError)); } };
-  return <section className="reviews-page"><PageHeader eyebrow="Reputation" title="Reviews that help people choose" description="Share specific feedback after a completed class and see the learning experiences others have described." /><div className="dashboard-grid"><form className="panel" onSubmit={submit}><div className="panel-heading"><div><span className="panel-eyebrow">New review</span><h2>Share your experience</h2></div><Star size={20} /></div><Alert type={message.includes("published") ? "success" : "error"}>{message}</Alert><FormField name="booking_id" label="Completed booking" value={form.booking_id} onChange={change} options={(bookings || []).map((booking) => ({ value: booking.id, label: `#${booking.id} · ${booking.class_date}` }))} required /><FormField name="rating" label="Rating" value={form.rating} onChange={change} options={["5", "4", "3", "2", "1"]} /><FormField name="comment" label="Comment" as="textarea" value={form.comment} onChange={change} /><button className="button">Publish review</button></form><article className="panel panel-wide"><div className="panel-heading"><div><span className="panel-eyebrow">Community signal</span><h2>Received feedback</h2></div></div><Alert>{error}</Alert>{loading ? <LoadingSpinner /> : data.length ? data.map((review) => <blockquote key={review.id}><span>{"★".repeat(review.rating)}</span><p>{review.comment}</p><small>— {review.reviewer_name}</small></blockquote>) : <EmptyState icon={Star} title="No reviews yet" text="Feedback appears after completed classes." />}</article></div></section>;
+  return (
+    <section className="reviews-page">
+      <PageHeader eyebrow="Reputation" title="Reviews that help people choose" description="Share specific feedback after a completed class and see the learning experiences others have described." />
+      <div className="dashboard-grid">
+        <form className="panel" onSubmit={submit}>
+          <div className="panel-heading"><div><span className="panel-eyebrow">New review</span><h2>Share your experience</h2></div><Star size={20} /></div>
+          <Alert type={message.includes("published") ? "success" : "error"}>{message}</Alert>
+          <FormField name="booking_id" label="Completed booking" value={form.booking_id} onChange={change} options={(bookings || []).map((booking) => ({ value: booking.id, label: `#${booking.id} · ${booking.class_date}` }))} required />
+          <FormField name="rating" label="Rating" value={form.rating} onChange={change} options={["5", "4", "3", "2", "1"]} />
+          <FormField name="comment" label="Comment" as="textarea" value={form.comment} onChange={change} />
+          <button className="button">Publish review</button>
+        </form>
+        <article className="panel panel-wide">
+          <div className="panel-heading"><div><span className="panel-eyebrow">Community signal</span><h2>Received feedback</h2></div></div>
+          <Alert>{error}</Alert>
+          {loading ? (
+            <SkeletonCard count={2} label="Loading reviews" />
+          ) : data.length ? (
+            data.map((review) => <blockquote key={review.id}><span>{"★".repeat(review.rating)}</span><p>{review.comment}</p><small>— {review.reviewer_name}</small></blockquote>)
+          ) : error ? (
+            <EmptyState
+              icon={AlertCircle}
+              title="Reviews could not load"
+              description="Try again to restore the latest feedback."
+              action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+            />
+          ) : (
+            <EmptyState
+              icon={Star}
+              title="No reviews yet"
+              description="Feedback appears after completed classes."
+              action={<Link className="button button-ghost" to={`/${user.role}/bookings`}>View bookings</Link>}
+            />
+          )}
+        </article>
+      </div>
+    </section>
+  );
 }

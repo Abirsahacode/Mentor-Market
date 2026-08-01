@@ -8,6 +8,7 @@ import { Link, useParams } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
 import Alert from "../components/Alert.jsx";
 import CourseArtwork from "../components/CourseArtwork.jsx";
+import FormField from "../components/FormField.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import useAuth from "../hooks/useAuth.js";
 
@@ -71,6 +72,24 @@ const findBlueprint = (subject = "") => {
 
 const initials = (name = "Mentor") => name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const validationErrors = (requestError) => {
+  const details = requestError.response?.data?.error?.details;
+  if (!Array.isArray(details)) return {};
+  return details.reduce((errors, detail) => {
+    const field = String(detail?.field || "").replace(/\[.*$/, "").split(".")[0];
+    if (!field || errors[field]) return errors;
+    const reason = String(detail?.reason || "Please check this field");
+    errors[field] = `${reason.charAt(0).toUpperCase()}${reason.slice(1)}`;
+    return errors;
+  }, {});
+};
+const scheduleErrorFields = {
+  invalid_date: "class_date",
+  past_class_date: "class_date",
+  invalid_time: "class_time",
+  slot_unavailable: "class_time",
+  booking_conflict: "class_time",
+};
 
 export default function CourseDetailsPage() {
   const { id } = useParams();
@@ -87,10 +106,12 @@ export default function CourseDetailsPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bookingStatus, setBookingStatus] = useState({ type: "", message: "" });
+  const [bookingFieldErrors, setBookingFieldErrors] = useState({});
   const [booking, setBooking] = useState({ class_type: "trial", class_date: "", class_time: "", mode: "online", duration_minutes: 60 });
   const [availabilitySlots, setAvailabilitySlots] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
+  const [availabilityResolvedDate, setAvailabilityResolvedDate] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -151,20 +172,30 @@ export default function CourseDetailsPage() {
   const blueprint = useMemo(() => findBlueprint(course?.subject), [course?.subject]);
   const classModes = course?.teaching_mode === "both" ? ["online", "offline"] : [course?.teaching_mode || "online"];
   const selectedDateSlots = availabilitySlots.filter((slot) => slot.date === booking.class_date);
+  const availabilityIsResolved = Boolean(booking.class_date)
+    && availabilityResolvedDate === booking.class_date
+    && !availabilityLoading;
+  const availabilityFieldError = availabilityIsResolved
+    ? availabilityError || (!selectedDateSlots.length ? "No calendar slots are open for this date yet. Pick another day." : "")
+    : "";
 
   const loadAvailability = async (date) => {
     if (!course?.tutor_id && !tutor.id || !date) {
       setAvailabilitySlots([]);
+      setAvailabilityResolvedDate("");
       return;
     }
     setAvailabilityLoading(true);
     setAvailabilityError("");
+    setAvailabilityResolvedDate("");
     try {
       const response = await api.get("/bookings/availability", { params: { tutor_id: Number(course?.tutor_id || tutor.id), from_date: date, to_date: date } });
       setAvailabilitySlots(response.data.data || []);
+      setAvailabilityResolvedDate(date);
     } catch {
       setAvailabilitySlots([]);
       setAvailabilityError("Availability could not be checked right now. Try another date or message the mentor.");
+      setAvailabilityResolvedDate(date);
     } finally {
       setAvailabilityLoading(false);
     }
@@ -173,6 +204,7 @@ export default function CourseDetailsPage() {
   useEffect(() => {
     if (!booking.class_date) {
       setAvailabilitySlots([]);
+      setAvailabilityResolvedDate("");
       return;
     }
     loadAvailability(booking.class_date);
@@ -191,12 +223,20 @@ export default function CourseDetailsPage() {
       [name]: value,
       ...(name === "class_date" ? { class_time: "" } : {}),
     }));
+    setBookingFieldErrors((current) => {
+      if (!current[name] && (name !== "class_date" || !current.class_time)) return current;
+      const next = { ...current };
+      delete next[name];
+      if (name === "class_date") delete next.class_time;
+      return next;
+    });
   };
   const submitBooking = async (event) => {
     event.preventDefault();
     setBookingStatus({ type: "", message: "" });
+    setBookingFieldErrors({});
     if (booking.class_date < today()) {
-      setBookingStatus({ type: "error", message: "Choose today or a future date." });
+      setBookingFieldErrors({ class_date: "Choose today or a future date." });
       return;
     }
     setBookingStatus({ type: "loading", message: "Sending your class request…" });
@@ -208,9 +248,20 @@ export default function CourseDetailsPage() {
         duration_minutes: Number(booking.duration_minutes),
       });
       setBookingStatus({ type: "success", message: `Your request is with ${tutor.full_name?.split(" ")[0] || "the tutor"}. You’ll see updates in My classes.` });
+      setBookingFieldErrors({});
       setBooking((current) => ({ ...current, class_date: "", class_time: "" }));
     } catch (requestError) {
-      setBookingStatus({ type: "error", message: getErrorMessage(requestError) });
+      const nextFieldErrors = validationErrors(requestError);
+      const errorField = scheduleErrorFields[requestError.response?.data?.error?.code];
+      if (errorField && !nextFieldErrors[errorField]) nextFieldErrors[errorField] = getErrorMessage(requestError);
+      const visibleFields = new Set(["class_date", "class_time"]);
+      const visibleFieldErrors = Object.fromEntries(Object.entries(nextFieldErrors).filter(([field]) => visibleFields.has(field)));
+      setBookingFieldErrors(visibleFieldErrors);
+      const hasUnhandledError = !Object.keys(visibleFieldErrors).length
+        || Object.keys(nextFieldErrors).some((field) => !visibleFields.has(field));
+      setBookingStatus(hasUnhandledError
+        ? { type: "error", message: getErrorMessage(requestError) }
+        : { type: "", message: "" });
     }
   };
   const saveCourse = async () => {
@@ -320,13 +371,12 @@ export default function CourseDetailsPage() {
           {user?.role === "student" ? <form onSubmit={submitBooking}>
             <Alert type={bookingStatus.type === "success" ? "success" : "error"}>{bookingStatus.type !== "loading" ? bookingStatus.message : ""}</Alert>
             <label><span>Class type</span><select name="class_type" value={booking.class_type} onChange={changeBooking}>{course.has_trial && <option value="trial">Trial class</option>}<option value="one-time">One-time class</option><option value="weekly">Weekly classes</option><option value="monthly">Monthly plan</option></select></label>
-            <div className="cx-form-row"><label><span>Date</span><input name="class_date" type="date" min={today()} value={booking.class_date} onChange={changeBooking} required /></label><label><span>Time</span><select name="class_time" value={booking.class_time} onChange={changeBooking} required disabled={!booking.class_date || availabilityLoading}>{booking.class_date ? <option value="">{availabilityLoading ? "Loading slots…" : "Choose a time"}</option> : <option value="">Pick a date first</option>}{selectedDateSlots.map((slot) => <option value={slot.time} key={slot.label}>{slot.time}</option>)}</select></label></div>
-            <p className={`cx-booking-fineprint${availabilityError ? " is-error" : ""}`}>{availabilityError || (booking.class_date && !availabilityLoading && !selectedDateSlots.length ? "No calendar slots are open for this date yet. Pick another day." : "Times are loaded from the tutor’s calendar and existing bookings.")}</p>
+            <div className="cx-form-row"><FormField label="Date" name="class_date" type="date" min={today()} value={booking.class_date} onChange={changeBooking} required error={bookingFieldErrors.class_date} hint="Choose today or a future date." /><FormField label="Time" name="class_time" value={booking.class_time} onChange={changeBooking} options={selectedDateSlots.map((slot) => ({ value: slot.time, label: slot.time }))} emptyOption={booking.class_date ? availabilityLoading ? "Loading slots…" : "Choose a time" : "Pick a date first"} required disabled={!booking.class_date || availabilityLoading} error={bookingFieldErrors.class_time || availabilityFieldError} hint="Times come from the tutor’s calendar and existing bookings." /></div>
             <div className="cx-form-row"><label><span>Format</span><select name="mode" value={booking.mode} onChange={changeBooking}>{classModes.map((mode) => <option value={mode} key={mode}>{mode[0].toUpperCase() + mode.slice(1)}</option>)}</select></label><label><span>Duration</span><select name="duration_minutes" value={booking.duration_minutes} onChange={changeBooking}><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></label></div>
             <button className="cx-button cx-button-primary cx-button-wide" disabled={bookingStatus.type === "loading"}>{bookingStatus.type === "loading" ? "Sending request…" : <><CalendarDays size={17} /> Request this class</>}</button>
             <p className="cx-booking-fineprint">No charge today. The tutor confirms your request before a mock payment is created.</p>
           </form> : <div className="cx-login-prompt"><p>Log in with a student account to choose a time and request this class.</p><Link className="cx-button cx-button-primary cx-button-wide" to="/login">Log in to book</Link></div>}
-          <div className="cx-booking-trust"><span><ShieldCheck size={16} /><p><strong>Book with confidence</strong><small>Marketplace reporting and admin support</small></p></span><span><CalendarDays size={16} /><p><strong>Flexible scheduling</strong><small>Manage requests from My classes</small></p></span><span><Users size={16} /><p><strong>Human, 1-to-1 support</strong><small>A plan shaped around your pace</small></p></span></div>
+          <div className="cx-booking-trust"><span><ShieldCheck size={16} /><span><strong>Book with confidence</strong><br /><small>Marketplace reporting and admin support</small></span></span><span><CalendarDays size={16} /><span><strong>Flexible scheduling</strong><br /><small>Manage requests from My classes</small></span></span><span><Users size={16} /><span><strong>Human, 1-to-1 support</strong><br /><small>A plan shaped around your pace</small></span></span></div>
         </div>
       </aside>
     </section>

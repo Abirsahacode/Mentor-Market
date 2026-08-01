@@ -5,7 +5,7 @@ export default function RequestCard({ request, action, anonymizeStudent = false 
   const studentName = request.student?.full_name || request.student_name || "Student";
   const displayName = anonymizeStudent ? studentName.split(" ")[0] : studentName;
   return (
-    <article className="request-card">
+    <article className="request-card card-lift">
       <div className="request-card-head"><span className={`status-badge status-${request.status}`}>{request.status}</span><span className="request-date">#{String(request.id || "").padStart(3, "0")}</span></div>
       <div className="request-title"><span>{request.subject}</span><h3>{request.class_level}</h3></div>
       <p className="request-description line-clamp">{request.description}</p>

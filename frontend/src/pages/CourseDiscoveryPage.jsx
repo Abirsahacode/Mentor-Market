@@ -11,7 +11,7 @@ import CourseArtwork from "../components/CourseArtwork.jsx";
 import CoursePin from "../components/CoursePin.jsx";
 import DemoVideo from "../components/DemoVideo.jsx";
 import EmptyState from "../components/EmptyState.jsx";
-import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import Skeleton, { SkeletonCard } from "../components/Skeleton.jsx";
 import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
 import { firstDisplayName } from "../utils/formatters.js";
@@ -206,15 +206,22 @@ export default function CourseDiscoveryPage() {
     setMaxPrice(null);
   };
 
+  const clearAllFilters = () => {
+    setQuery("");
+    setSubject("All");
+    clearFilters();
+  };
+
   const shownCourses = visibleCourses.slice(0, displayCount);
   const isPositiveMessage = /saved|removed|retuned/i.test(message);
+  const hasCatalogFilters = Boolean(query.trim()) || subject !== "All" || activeFilterCount > 0;
 
   return (
     <section className="course-discovery-page">
       <header className="course-feed-hero">
         <div className="course-feed-edition" aria-hidden="true">
           <span>MENTOR MARKET / COURSE DISCOVERY</span>
-          <span>{String(courses.length).padStart(2, "0")} TEACHING PREVIEWS</span>
+          <span>{catalog.loading ? "—" : String(courses.length).padStart(2, "0")} TEACHING PREVIEWS</span>
         </div>
 
         <div className="course-feed-copy">
@@ -234,7 +241,12 @@ export default function CourseDiscoveryPage() {
         </div>
 
         <article className="course-spotlight">
-          {spotlight ? (
+          {catalog.loading ? (
+            <div className="course-spotlight-placeholder" role="status" aria-label="Loading featured course preview">
+              <Skeleton variant="media" />
+              <Skeleton variant="title" className="skeleton-medium" />
+            </div>
+          ) : spotlight ? (
             <>
               <div className="course-spotlight-media">
                 {spotlightTutor.avatar_url
@@ -261,8 +273,13 @@ export default function CourseDiscoveryPage() {
         </article>
       </header>
 
-      <div className="learning-pulse">
-        {recent.data[0] ? (
+      <div className="learning-pulse" aria-busy={recent.loading || saved.loading || progress.loading}>
+        {recent.loading ? (
+          <div className="learning-pulse-label" role="status" aria-label="Loading recent learning activity">
+            <Skeleton className="skeleton-short" />
+            <Skeleton className="skeleton-medium" />
+          </div>
+        ) : recent.data[0] ? (
           <Link className="learning-pulse-label learning-pulse-continue" to={`/student/courses/${courseId(recent.data[0])}`}>
             <span className="learning-pulse-thumb"><CourseArtwork subject={recent.data[0].subject} /></span>
             <div><small>Continue learning</small><strong>{recent.data[0].title}</strong></div>
@@ -278,12 +295,12 @@ export default function CourseDiscoveryPage() {
         </button>
         <Link to="/student/saved-courses">
           <span><Bookmark size={18} /></span>
-          <div><small>Saved for later</small><strong>{saved.loading ? "—" : `${saved.data.length} courses`}</strong></div>
+          <div><small>Saved for later</small><strong>{saved.loading ? <Skeleton className="skeleton-medium" /> : `${saved.data.length} courses`}</strong></div>
           <ArrowRight size={16} />
         </Link>
         <Link to="/student/progress">
           <span><BarChart3 size={18} /></span>
-          <div><small>Performance</small><strong>{progress.loading ? "—" : `${Number(progress.data?.average_performance || 0)}% average`}</strong></div>
+          <div><small>Performance</small><strong>{progress.loading ? <Skeleton className="skeleton-medium" /> : `${Number(progress.data?.average_performance || 0)}% average`}</strong></div>
           <ArrowRight size={16} />
         </Link>
       </div>
@@ -345,7 +362,14 @@ export default function CourseDiscoveryPage() {
       )}
 
       {catalog.loading ? (
-        <LoadingSpinner label="Curating your course feed" />
+        <SkeletonCard count={8} label="Curating your course feed" />
+      ) : catalog.error && !courses.length ? (
+        <EmptyState
+          icon={RotateCcw}
+          title="The course catalog could not load"
+          description="Try again to restore the latest mentor courses and teaching previews."
+          action={<button type="button" className="button button-ghost" onClick={catalog.reload}>Try again</button>}
+        />
       ) : visibleCourses.length ? (
         <>
           <div className="course-masonry">
@@ -368,8 +392,20 @@ export default function CourseDiscoveryPage() {
             </div>
           )}
         </>
+      ) : courses.length && hasCatalogFilters ? (
+        <EmptyState
+          icon={Search}
+          title="No courses match these filters"
+          description="Try another subject, widen your price range, or reset the current search."
+          action={<button type="button" className="button button-ghost" onClick={clearAllFilters}>Reset filters</button>}
+        />
       ) : (
-        <EmptyState title="Nothing matches this edit" text="Try another subject, widen your price range, or clear a filter." />
+        <EmptyState
+          icon={Video}
+          title="No courses are available yet"
+          description="Tell mentors what you want to learn while new course previews are being prepared."
+          action={<Link className="button button-ghost" to="/student/create-request">Post what you need</Link>}
+        />
       )}
 
       {recent.data.length > 1 && (

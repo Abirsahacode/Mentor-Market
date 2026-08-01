@@ -1,4 +1,9 @@
+import {
+  BadgeCheck, BookOpenCheck, CalendarDays, ClipboardList, CreditCard,
+  ShieldCheck, Star, UsersRound,
+} from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
 import ResourcePage from "../components/ResourcePage.jsx";
 
@@ -68,8 +73,85 @@ const descriptions = {
   reports: "Resolve safety cases with a clear record of every administrative decision.",
 };
 
+const emptyStates = {
+  users: {
+    icon: UsersRound,
+    title: "No user accounts",
+    description: "Accounts will appear here after someone registers for Mentor Market.",
+  },
+  students: {
+    icon: UsersRound,
+    title: "No student accounts",
+    description: "Student accounts will appear here after registration.",
+    actionPath: "/admin/users",
+    actionLabel: "View all users",
+  },
+  tutors: {
+    icon: UsersRound,
+    title: "No tutor accounts",
+    description: "Tutor accounts will appear here after registration.",
+    actionPath: "/admin/users",
+    actionLabel: "View all users",
+  },
+  "tutor-posts": {
+    icon: BookOpenCheck,
+    title: "No tutor posts",
+    description: "Published mentor courses will appear here for marketplace review.",
+    actionPath: "/admin/tutors",
+    actionLabel: "Review tutors",
+  },
+  "student-requests": {
+    icon: ClipboardList,
+    title: "No student requests",
+    description: "Learning briefs will appear here as students publish them.",
+    actionPath: "/admin/students",
+    actionLabel: "Review students",
+  },
+  applications: {
+    icon: ClipboardList,
+    title: "No applications",
+    description: "Tutor proposals will appear here as mentors respond to learning briefs.",
+    actionPath: "/admin/student-requests",
+    actionLabel: "Review student requests",
+  },
+  bookings: {
+    icon: CalendarDays,
+    title: "No bookings",
+    description: "Accepted proposals and direct class requests will appear here.",
+    actionPath: "/admin/applications",
+    actionLabel: "Review applications",
+  },
+  payments: {
+    icon: CreditCard,
+    title: "No payment records",
+    description: "Payments will appear here after an eligible class booking.",
+    actionPath: "/admin/bookings",
+    actionLabel: "Review bookings",
+  },
+  reviews: {
+    icon: Star,
+    title: "No reviews",
+    description: "Student and tutor feedback will appear after completed classes.",
+    actionPath: "/admin/bookings",
+    actionLabel: "Review bookings",
+  },
+  verifications: {
+    icon: BadgeCheck,
+    title: "Verification queue is clear",
+    description: "No mentor credentials need review right now.",
+    actionPath: "/admin/tutors",
+    actionLabel: "View tutors",
+  },
+  reports: {
+    icon: ShieldCheck,
+    title: "Safety queue is clear",
+    description: "No marketplace reports need review right now.",
+  },
+};
+
 export default function AdminResourcePage({ type }) {
   const config = configs[type];
+  const emptyState = emptyStates[type];
   const [pendingAction, setPendingAction] = useState("");
   const [feedback, setFeedback] = useState(null);
 
@@ -292,6 +374,15 @@ export default function AdminResourcePage({ type }) {
       columns={config.columns}
       actions={actions}
       feedback={feedback}
+      striped
+      emptyState={{
+        icon: emptyState.icon,
+        title: emptyState.title,
+        description: emptyState.description,
+        action: emptyState.actionPath
+          ? <Link className="button button-ghost" to={emptyState.actionPath}>{emptyState.actionLabel}</Link>
+          : undefined,
+      }}
     />
   );
 }

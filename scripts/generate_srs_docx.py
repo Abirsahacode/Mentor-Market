@@ -1,832 +1,1170 @@
+"""Generate the reference-styled Mentor Market CSE470 SRS.
+
+The supplied WeHeal PDF is intentionally treated as a visual template:
+US Letter paper, one-inch margins, Times New Roman body text, black formal
+pages, blue hyperlinks, a centered cover table, an untitled TOC, and a
+screenshot-based sprint appendix.
+"""
+
 from pathlib import Path
 import sys
 
+
 sys.path.insert(0, "/tmp/mentor_market_docx")
 
+from PIL import Image
 from docx import Document
-from docx.enum.section import WD_SECTION
-from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
-from docx.enum.text import (
-    WD_ALIGN_PARAGRAPH,
-    WD_TAB_ALIGNMENT,
-    WD_TAB_LEADER,
+from docx.enum.table import (
+    WD_CELL_VERTICAL_ALIGNMENT,
+    WD_ROW_HEIGHT_RULE,
+    WD_TABLE_ALIGNMENT,
 )
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING, WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.shared import Inches, Pt, RGBColor
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "documentation"
 OUTPUT = OUTPUT_DIR / "Mentor_Market_SRS.docx"
+ASSET_DIR = OUTPUT_DIR / "srs_assets"
 
-NAVY = "17324D"
-TEAL = "0C7C86"
-PALE = "E8F3F4"
-LIGHT = "F3F6F8"
-GRAY = "5C6873"
+TIMES = "Times New Roman"
+ARIAL = "Arial"
+BLACK = "000000"
+LINK_BLUE = "1154CC"
+FEATURE_BLUE = "0000FF"
+RED = "FF0000"
+DEEP_RED = "CC0000"
 WHITE = "FFFFFF"
-SERIF_FONT = "Times New Roman"
-MONO_FONT = "Courier New"
 
 
-def apply_font(run, name=SERIF_FONT, size=None, bold=None, italic=None, color=None):
+TEAM = [
+    ("23201560", "Sieuti Zaman"),
+    ("23201291", "Mumtasim Daiyan"),
+    ("23201199", "Abir Saha"),
+    ("23201451", "Samina Fairooz Urbi"),
+]
+
+
+def set_run_font(
+    run,
+    name=TIMES,
+    size=11,
+    bold=False,
+    italic=False,
+    color=BLACK,
+    underline=False,
+):
     run.font.name = name
-    run._element.rPr.rFonts.set(qn("w:ascii"), name)
-    run._element.rPr.rFonts.set(qn("w:hAnsi"), name)
-    run._element.rPr.rFonts.set(qn("w:eastAsia"), name)
-    run._element.rPr.rFonts.set(qn("w:cs"), name)
-    if size is not None:
-        run.font.size = Pt(size)
-    if bold is not None:
-        run.bold = bold
-    if italic is not None:
-        run.italic = italic
-    if color:
-        run.font.color.rgb = RGBColor.from_string(color)
+    run._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), name)
+    run._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), name)
+    run._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), name)
+    run._element.get_or_add_rPr().rFonts.set(qn("w:cs"), name)
+    run.font.size = Pt(size)
+    run.bold = bold
+    run.italic = italic
+    run.underline = underline
+    run.font.color.rgb = RGBColor.from_string(color)
+    return run
 
 
-def apply_style_font(style, name, size, color=None, bold=None, italic=None):
+def set_style_font(style, name, size, bold=False, color=BLACK):
     style.font.name = name
-    style._element.rPr.rFonts.set(qn("w:ascii"), name)
-    style._element.rPr.rFonts.set(qn("w:hAnsi"), name)
-    style._element.rPr.rFonts.set(qn("w:eastAsia"), name)
-    style._element.rPr.rFonts.set(qn("w:cs"), name)
+    style._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), name)
+    style._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), name)
+    style._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), name)
+    style._element.get_or_add_rPr().rFonts.set(qn("w:cs"), name)
     style.font.size = Pt(size)
-    if color:
-        style.font.color.rgb = RGBColor.from_string(color)
-    if bold is not None:
-        style.font.bold = bold
-    if italic is not None:
-        style.font.italic = italic
+    style.font.bold = bold
+    style.font.color.rgb = RGBColor.from_string(color)
 
 
-def shade(cell, fill):
-    tc_pr = cell._tc.get_or_add_tcPr()
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:fill"), fill)
-    tc_pr.append(shd)
-
-
-def set_cell_text(cell, text, bold=False, color=None, size=9):
-    cell.text = ""
-    p = cell.paragraphs[0]
-    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    p.paragraph_format.space_after = Pt(0)
-    run = p.add_run(str(text))
-    apply_font(run, size=size, bold=bold, color=color)
-    cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-
-
-def add_table(doc, headers, rows, widths=None):
-    table = doc.add_table(rows=1, cols=len(headers))
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    table.style = "Table Grid"
-    for i, header in enumerate(headers):
-        set_cell_text(table.rows[0].cells[i], header, True, WHITE, 9)
-        shade(table.rows[0].cells[i], NAVY)
-        table.rows[0].cells[i].paragraphs[0].paragraph_format.keep_with_next = True
-    header_props = table.rows[0]._tr.get_or_add_trPr()
-    header_props.append(OxmlElement("w:tblHeader"))
-    header_props.append(OxmlElement("w:cantSplit"))
-    for row_idx, row in enumerate(rows):
-        cells = table.add_row().cells
-        cant_split = OxmlElement("w:cantSplit")
-        table.rows[-1]._tr.get_or_add_trPr().append(cant_split)
-        for i, value in enumerate(row):
-            set_cell_text(cells[i], value, False, None, 8.5)
-            if row_idx % 2:
-                shade(cells[i], LIGHT)
-    if widths:
-        for row in table.rows:
-            for i, width in enumerate(widths):
-                row.cells[i].width = Inches(width)
-    doc.add_paragraph().paragraph_format.space_after = Pt(0)
-    return table
-
-
-def add_bullet(doc, text, level=0):
-    p = doc.add_paragraph(style="List Bullet" if level == 0 else "List Bullet 2")
-    p.add_run(text)
-    return p
-
-
-def add_number(doc, text):
-    p = doc.add_paragraph(style="List Number")
-    p.add_run(text)
-    return p
-
-
-def add_req(doc, req_id, title, statements, priority="High"):
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    p.paragraph_format.keep_with_next = True
-    r = p.add_run(f"{req_id} — {title}")
-    r.bold = True
-    r.font.color.rgb = RGBColor.from_string(TEAL)
-    meta = p.add_run(f"  [{priority}]")
-    meta.italic = True
-    meta.font.size = Pt(9)
-    meta.font.color.rgb = RGBColor.from_string(GRAY)
-    for statement in statements:
-        add_bullet(doc, statement, 1)
-
-
-def add_field(paragraph, instruction, display_text=""):
-    run = paragraph.add_run()
-    begin = OxmlElement("w:fldChar")
-    begin.set(qn("w:fldCharType"), "begin")
-    instr = OxmlElement("w:instrText")
-    instr.set(qn("xml:space"), "preserve")
-    instr.text = instruction
-    separate = OxmlElement("w:fldChar")
-    separate.set(qn("w:fldCharType"), "separate")
-    text = OxmlElement("w:t")
-    text.text = display_text
-    end = OxmlElement("w:fldChar")
-    end.set(qn("w:fldCharType"), "end")
-    run._r.extend([begin, instr, separate, text, end])
-
-
-def add_static_toc(doc, entries):
-    """Add a visible TOC that also acts as the cached result of a Word TOC field."""
-    paragraphs = []
-    for title, level, page in entries:
-        p = doc.add_paragraph()
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p.paragraph_format.space_after = Pt(2)
-        p.paragraph_format.left_indent = Inches(0.28 * (level - 1))
-        p.paragraph_format.tab_stops.add_tab_stop(
-            Inches(6.45), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS
-        )
-        r = p.add_run(title)
-        apply_font(r, size=11, bold=level == 1, color=NAVY if level == 1 else None)
-        page_run = p.add_run(f"\t{page}")
-        apply_font(page_run, size=11, bold=level == 1)
-        paragraphs.append(p)
-
-    first_run = paragraphs[0].runs[0]._r
-    begin = OxmlElement("w:fldChar")
-    begin.set(qn("w:fldCharType"), "begin")
-    begin.set(qn("w:dirty"), "true")
-    instr = OxmlElement("w:instrText")
-    instr.set(qn("xml:space"), "preserve")
-    instr.text = ' TOC \\o "1-3" \\h \\z \\u '
-    separate = OxmlElement("w:fldChar")
-    separate.set(qn("w:fldCharType"), "separate")
-    first_run.insert(0, separate)
-    first_run.insert(0, instr)
-    first_run.insert(0, begin)
-
-    end = OxmlElement("w:fldChar")
-    end.set(qn("w:fldCharType"), "end")
-    paragraphs[-1].runs[-1]._r.append(end)
+def set_repeatable_page_geometry(section):
+    section.page_width = Inches(8.5)
+    section.page_height = Inches(11)
+    section.top_margin = Inches(1)
+    section.bottom_margin = Inches(1)
+    section.left_margin = Inches(1)
+    section.right_margin = Inches(1)
+    section.header_distance = Inches(0.5)
+    section.footer_distance = Inches(0.5)
 
 
 def configure_document(doc):
-    section = doc.sections[0]
-    section.top_margin = Inches(1.0)
-    section.bottom_margin = Inches(1.0)
-    section.left_margin = Inches(1.0)
-    section.right_margin = Inches(1.0)
+    for section in doc.sections:
+        set_repeatable_page_geometry(section)
+
     styles = doc.styles
     normal = styles["Normal"]
-    apply_style_font(normal, SERIF_FONT, 11)
-    normal.paragraph_format.space_after = Pt(6)
-    normal.paragraph_format.line_spacing = 1.15
+    set_style_font(normal, TIMES, 11)
     normal.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    for style_name, size, color in [
-        ("Title", 26, NAVY),
-        ("Subtitle", 15, TEAL),
-        ("Heading 1", 17, NAVY),
-        ("Heading 2", 14, TEAL),
-        ("Heading 3", 12, NAVY),
-    ]:
-        style = styles[style_name]
-        apply_style_font(
-            style,
-            SERIF_FONT,
-            size,
-            color=color,
-            bold=style_name != "Subtitle",
-            italic=style_name == "Subtitle",
-        )
-        style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    styles["Heading 1"].paragraph_format.page_break_before = False
-    styles["Heading 1"].paragraph_format.keep_with_next = True
-    styles["Heading 1"].paragraph_format.space_after = Pt(10)
-    styles["Heading 1"].paragraph_format.space_before = Pt(16)
-    styles["Heading 2"].paragraph_format.space_before = Pt(10)
-    styles["Heading 2"].paragraph_format.space_after = Pt(6)
-    styles["Heading 2"].paragraph_format.keep_with_next = True
-    styles["Heading 3"].paragraph_format.keep_with_next = True
+    normal.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+    normal.paragraph_format.line_spacing = 1.15
+    normal.paragraph_format.space_after = Pt(0)
+
+    h1 = styles["Heading 1"]
+    set_style_font(h1, TIMES, 17, bold=True)
+    h1.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    h1.paragraph_format.line_spacing = 1
+    h1.paragraph_format.space_before = Pt(0)
+    h1.paragraph_format.space_after = Pt(17)
+    h1.paragraph_format.keep_with_next = True
+    h1.paragraph_format.keep_together = True
+
+    h2 = styles["Heading 2"]
+    set_style_font(h2, TIMES, 13, bold=True)
+    h2.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    h2.paragraph_format.line_spacing = 1
+    h2.paragraph_format.space_before = Pt(10)
+    h2.paragraph_format.space_after = Pt(8)
+    h2.paragraph_format.keep_with_next = True
+    h2.paragraph_format.keep_together = True
+
+    h3 = styles["Heading 3"]
+    set_style_font(h3, TIMES, 11, bold=True)
+    h3.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    h3.paragraph_format.line_spacing = 1
+    h3.paragraph_format.space_before = Pt(6)
+    h3.paragraph_format.space_after = Pt(5)
+    h3.paragraph_format.keep_with_next = True
+    h3.paragraph_format.keep_together = True
+
+    # Preserve the reference's absence of visible headers, footers, and page numbers.
+    for section in doc.sections:
+        section.header.paragraphs[0].clear()
+        section.footer.paragraphs[0].clear()
+
+    compat = doc.settings._element.find(qn("w:compat"))
+    if compat is None:
+        compat = OxmlElement("w:compat")
+        doc.settings._element.append(compat)
+    setting = OxmlElement("w:compatSetting")
+    setting.set(qn("w:name"), "compatibilityMode")
+    setting.set(qn("w:uri"), "http://schemas.microsoft.com/office/word")
+    setting.set(qn("w:val"), "15")
+    compat.append(setting)
 
 
-def add_header_footer(section):
-    section.header.is_linked_to_previous = False
-    section.footer.is_linked_to_previous = False
-    header = section.header.paragraphs[0]
-    header.text = "MENTOR MARKET  |  SOFTWARE REQUIREMENTS SPECIFICATION"
-    header.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    for run in header.runs:
-        apply_font(run, size=8, bold=True, color=TEAL)
-    footer = section.footer.paragraphs[0]
-    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("Mentor Market  •  Version 1.0  •  ")
-    add_field(footer, "PAGE", "1")
-    for run in footer.runs:
-        apply_font(run, size=8, color=GRAY)
+def add_h1(doc, text, page_break=False):
+    p = doc.add_paragraph(style="Heading 1")
+    p.paragraph_format.page_break_before = page_break
+    set_run_font(p.add_run(text), size=17, bold=True)
+    return p
+
+
+def add_h2(doc, text, page_break=False):
+    p = doc.add_paragraph(style="Heading 2")
+    p.paragraph_format.page_break_before = page_break
+    set_run_font(p.add_run(text), size=13, bold=True)
+    return p
+
+
+def add_h3(doc, text, page_break=False):
+    p = doc.add_paragraph(style="Heading 3")
+    p.paragraph_format.page_break_before = page_break
+    set_run_font(p.add_run(text), size=11, bold=True)
+    return p
+
+
+def add_body(doc, text, bold_prefix=None, after=8, align=WD_ALIGN_PARAGRAPH.JUSTIFY):
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.space_after = Pt(after)
+    if bold_prefix and text.startswith(bold_prefix):
+        set_run_font(p.add_run(bold_prefix), bold=True)
+        set_run_font(p.add_run(text[len(bold_prefix) :]))
+    else:
+        set_run_font(p.add_run(text))
+    return p
+
+
+def add_rich_body(doc, parts, after=8, align=WD_ALIGN_PARAGRAPH.JUSTIFY):
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.space_after = Pt(after)
+    for part in parts:
+        if isinstance(part, str):
+            set_run_font(p.add_run(part))
+        else:
+            text, bold, italic, color = part
+            set_run_font(
+                p.add_run(text),
+                bold=bold,
+                italic=italic,
+                color=color,
+            )
+    return p
+
+
+def add_manual_list(
+    doc,
+    marker,
+    text,
+    label=None,
+    level=1,
+    after=0,
+    marker_font=ARIAL,
+    size=11,
+    color=BLACK,
+):
+    p = doc.add_paragraph()
+    text_indent = 0.5 + (level - 1) * 0.5
+    p.paragraph_format.left_indent = Inches(text_indent)
+    p.paragraph_format.first_line_indent = Inches(-0.25)
+    p.paragraph_format.tab_stops.add_tab_stop(Inches(text_indent), WD_TAB_ALIGNMENT.LEFT)
+    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.space_after = Pt(after)
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    set_run_font(p.add_run(marker), name=marker_font, size=size, color=color)
+    p.add_run("\t")
+    if label:
+        set_run_font(p.add_run(label), size=size, bold=True, color=color)
+    set_run_font(p.add_run(text), size=size, color=color)
+    return p
+
+
+def add_bullet(doc, text, label=None, level=1, after=0):
+    return add_manual_list(doc, "●", text, label=label, level=level, after=after)
+
+
+def add_circle_bullet(doc, text, label=None, level=2, after=0):
+    return add_manual_list(doc, "○", text, label=label, level=level, after=after)
+
+
+def add_numbered(doc, number, text, label=None, after=0, level=1):
+    return add_manual_list(doc, f"{number}.", text, label=label, level=level, after=after)
+
+
+def add_external_hyperlink(paragraph, text, url):
+    rel_id = paragraph.part.relate_to(url, RT.HYPERLINK, is_external=True)
+    hyperlink = OxmlElement("w:hyperlink")
+    hyperlink.set(qn("r:id"), rel_id)
+    run = OxmlElement("w:r")
+    rpr = OxmlElement("w:rPr")
+    rfonts = OxmlElement("w:rFonts")
+    rfonts.set(qn("w:ascii"), TIMES)
+    rfonts.set(qn("w:hAnsi"), TIMES)
+    rpr.append(rfonts)
+    color = OxmlElement("w:color")
+    color.set(qn("w:val"), LINK_BLUE)
+    rpr.append(color)
+    underline = OxmlElement("w:u")
+    underline.set(qn("w:val"), "single")
+    rpr.append(underline)
+    size = OxmlElement("w:sz")
+    size.set(qn("w:val"), "22")
+    rpr.append(size)
+    text_element = OxmlElement("w:t")
+    text_element.text = text
+    run.extend([rpr, text_element])
+    hyperlink.append(run)
+    paragraph._p.append(hyperlink)
+
+
+def set_cell_margins(cell, top=0, start=70, bottom=0, end=70):
+    tc = cell._tc
+    tc_pr = tc.get_or_add_tcPr()
+    tc_mar = tc_pr.first_child_found_in("w:tcMar")
+    if tc_mar is None:
+        tc_mar = OxmlElement("w:tcMar")
+        tc_pr.append(tc_mar)
+    for margin_name, value in (("top", top), ("start", start), ("bottom", bottom), ("end", end)):
+        node = tc_mar.find(qn(f"w:{margin_name}"))
+        if node is None:
+            node = OxmlElement(f"w:{margin_name}")
+            tc_mar.append(node)
+        node.set(qn("w:w"), str(value))
+        node.set(qn("w:type"), "dxa")
+
+
+def set_cell_width(cell, width_twips):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    tc_w = tc_pr.find(qn("w:tcW"))
+    if tc_w is None:
+        tc_w = OxmlElement("w:tcW")
+        tc_pr.append(tc_w)
+    tc_w.set(qn("w:w"), str(width_twips))
+    tc_w.set(qn("w:type"), "dxa")
+
+
+def set_table_borders(table, size=8, color=BLACK):
+    tbl_pr = table._tbl.tblPr
+    borders = tbl_pr.find(qn("w:tblBorders"))
+    if borders is None:
+        borders = OxmlElement("w:tblBorders")
+        tbl_pr.append(borders)
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        tag = borders.find(qn(f"w:{edge}"))
+        if tag is None:
+            tag = OxmlElement(f"w:{edge}")
+            borders.append(tag)
+        tag.set(qn("w:val"), "single")
+        tag.set(qn("w:sz"), str(size))
+        tag.set(qn("w:space"), "0")
+        tag.set(qn("w:color"), color)
+
+
+def remove_table_borders(table):
+    tbl_pr = table._tbl.tblPr
+    borders = tbl_pr.find(qn("w:tblBorders"))
+    if borders is None:
+        borders = OxmlElement("w:tblBorders")
+        tbl_pr.append(borders)
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        tag = borders.find(qn(f"w:{edge}"))
+        if tag is None:
+            tag = OxmlElement(f"w:{edge}")
+            borders.append(tag)
+        tag.set(qn("w:val"), "nil")
 
 
 def add_cover(doc):
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(52)
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run("MENTOR")
-    apply_font(run, size=28, bold=True, italic=True, color=NAVY)
-    run = p.add_run(" MARKET")
-    apply_font(run, size=28, bold=True, italic=True, color=TEAL)
-    p = doc.add_paragraph("A Full-Stack EdTech Tutoring Marketplace", style="Subtitle")
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_after = Pt(40)
-    p = doc.add_paragraph("Software Requirements Specification", style="Title")
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p = doc.add_paragraph("SRS", style="Subtitle")
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_after = Pt(62)
-    table = doc.add_table(rows=4, cols=2)
+    name_p = doc.add_paragraph()
+    name_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    name_p.paragraph_format.space_before = Pt(153.5)
+    name_p.paragraph_format.space_after = Pt(9)
+    name_p.paragraph_format.line_spacing = 1
+    set_run_font(name_p.add_run("“Mentor Market”"), size=26, bold=True, italic=True)
+
+    subtitle_p = doc.add_paragraph()
+    subtitle_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    subtitle_p.paragraph_format.space_after = Pt(23)
+    subtitle_p.paragraph_format.line_spacing = 1
+    set_run_font(
+        subtitle_p.add_run("an all-in-one tutoring web application"),
+        size=26,
+        bold=True,
+        italic=True,
+    )
+
+    title_p = doc.add_paragraph()
+    title_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title_p.paragraph_format.space_after = Pt(21)
+    title_p.paragraph_format.line_spacing = 1
+    set_run_font(title_p.add_run("Software Requirements Specification"), size=14, bold=True)
+
+    prepared_p = doc.add_paragraph()
+    prepared_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    prepared_p.paragraph_format.space_after = Pt(38)
+    prepared_p.paragraph_format.line_spacing = 1
+    set_run_font(prepared_p.add_run("Prepared by"), size=14, bold=True)
+
+    table = doc.add_table(rows=5, cols=2)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    table.style = "Table Grid"
-    details = [
-        ("Document version", "1.0"),
-        ("Prepared for", "Mentor Market Project"),
-        ("Prepared by", "Mentor Market Project Team"),
-        ("Date", "24 July 2026"),
-    ]
-    for i, (label, value) in enumerate(details):
-        set_cell_text(table.cell(i, 0), label, True, WHITE, 10)
-        shade(table.cell(i, 0), NAVY)
-        set_cell_text(table.cell(i, 1), value, False, None, 10)
-        if i % 2:
-            shade(table.cell(i, 1), LIGHT)
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(58)
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("Students find mentors. Mentors find learners. Learning relationships grow.")
-    r.italic = True
-    r.font.color.rgb = RGBColor.from_string(GRAY)
+    table.autofit = False
+    tbl_pr = table._tbl.tblPr
+    tbl_w = tbl_pr.find(qn("w:tblW"))
+    if tbl_w is None:
+        tbl_w = OxmlElement("w:tblW")
+        tbl_pr.append(tbl_w)
+    tbl_w.set(qn("w:w"), "6340")
+    tbl_w.set(qn("w:type"), "dxa")
+    layout = OxmlElement("w:tblLayout")
+    layout.set(qn("w:type"), "fixed")
+    tbl_pr.append(layout)
+    set_table_borders(table, size=8)
+
+    rows = [("Student ID", "Name"), *TEAM]
+    widths = (2810, 3530)
+    for grid_column, width in zip(table._tbl.tblGrid.gridCol_lst, widths):
+        grid_column.set(qn("w:w"), str(width))
+    for row_index, (student_id, name) in enumerate(rows):
+        row = table.rows[row_index]
+        row.height = Pt(21)
+        row.height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
+        for cell_index, value in enumerate((student_id, name)):
+            cell = row.cells[cell_index]
+            set_cell_width(cell, widths[cell_index])
+            set_cell_margins(cell)
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            p = cell.paragraphs[0]
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(0)
+            p.paragraph_format.line_spacing = 1
+            set_run_font(p.add_run(value), size=12, bold=row_index == 0)
 
 
-def add_front_matter_heading(doc, text):
+TOC_ENTRIES = [
+    ("1. Introduction", 1, 3),
+    ("1.1 Purpose", 2, 3),
+    ("1.2 Scope", 2, 3),
+    ("1.3 Definitions, Acronyms, and Abbreviations", 2, 3),
+    ("1.4 References", 2, 3),
+    ("1.5 Overview", 2, 4),
+    ("2. Overall Description", 1, 4),
+    ("2.1 Product Perspective", 2, 4),
+    ("2.2 Product Features", 2, 4),
+    ("2.3 User Classes and Characteristics", 2, 4),
+    ("2.4 Operating Environment", 2, 5),
+    ("2.5 Constraints", 2, 5),
+    ("2.6 Assumptions and Dependencies", 2, 5),
+    ("3. System Requirements", 1, 5),
+    ("3.1 Functional Requirements", 2, 5),
+    ("3.1.1 Authentication & Authorization", 3, 5),
+    ("3.1.2 Student & Tutor Interaction", 3, 6),
+    ("3.1.3 Learning Management Services", 3, 6),
+    ("3.1.4 Additional Services", 3, 7),
+    ("3.2 Non-Functional Requirements", 2, 7),
+    ("3.2.1 Performance Requirements", 3, 7),
+    ("3.2.2 Security Requirements", 3, 7),
+    ("3.2.3 Reliability & Availability", 3, 7),
+    ("3.2.4 Maintainability", 3, 7),
+    ("3.2.5 Scalability", 3, 7),
+    ("3.3 External Interface Requirements", 2, 8),
+    ("3.3.1 User Interfaces", 3, 8),
+    ("3.3.2 Hardware Interfaces", 3, 8),
+    ("3.3.3 Software Interfaces", 3, 8),
+    ("3.3.4 Communication Interfaces", 3, 8),
+    ("4. Technology Stack & Architectural Overview", 1, 8),
+    ("4.1 Technology Stack Components", 2, 8),
+    ("4.2 High-Level Architecture", 2, 8),
+    ("5. Tentative Development Plan (Agile Methodology)", 1, 9),
+    ("Sprint 1 (Weeks 1–2): Foundation, Authentication & Profiles", 2, 9),
+    ("Sprint 2 (Weeks 3–4): Marketplace & Discovery", 2, 9),
+    ("Sprint 3 (Weeks 5–6): Applications, Bookings & Communication", 2, 9),
+    ("Sprint 4 (Week 7): Learning, Finance & Trust Services", 2, 9),
+    ("Sprint 5 (Weeks 8–9): Administration, Quality & Delivery", 2, 9),
+    ("6. Acceptance Criteria", 1, 10),
+    ("7. Conclusion", 1, 10),
+]
+
+
+def add_toc(doc):
+    for index, (title, level, page) in enumerate(TOC_ENTRIES):
+        p = doc.add_paragraph()
+        p.paragraph_format.page_break_before = index == 0
+        p.paragraph_format.left_indent = Inches(0.25 * (level - 1))
+        p.paragraph_format.right_indent = Inches(0)
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = Pt(15.55)
+        p.paragraph_format.tab_stops.add_tab_stop(
+            Inches(6.5),
+            WD_TAB_ALIGNMENT.RIGHT,
+            WD_TAB_LEADER.DOTS,
+        )
+        set_run_font(p.add_run(title), size=11, bold=level == 1)
+        set_run_font(p.add_run(f"\t{page}"), size=11, bold=level == 1)
+
+
+def add_reference_link(doc, text, url):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(6)
-    p.paragraph_format.space_after = Pt(10)
-    p.paragraph_format.keep_with_next = True
-    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    run = p.add_run(text)
-    apply_font(run, size=17, bold=True, color=NAVY)
+    p.paragraph_format.left_indent = Inches(1)
+    p.paragraph_format.first_line_indent = Inches(-0.25)
+    p.paragraph_format.tab_stops.add_tab_stop(Inches(1), WD_TAB_ALIGNMENT.LEFT)
+    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.space_after = Pt(0)
+    set_run_font(p.add_run("○"), name=ARIAL)
+    p.add_run("\t")
+    add_external_hyperlink(p, text, url)
     return p
+
+
+def add_formal_srs(doc):
+    # Physical page 3
+    add_h1(doc, "1. Introduction", page_break=True)
+    add_h2(doc, "1.1 Purpose")
+    add_rich_body(
+        doc,
+        [
+            "This Software Requirements Specification (SRS) document outlines the requirements for developing ",
+            ("“Mentor Market” - an all-in-one tutoring marketplace web application", True, False, BLACK),
+            " using React.js, Node.js, Express.js, and MySQL. The system connects students with tutors and supports their learning relationship from discovery and hiring through classes, assessment, simulated payment, progress, and review.",
+        ],
+        after=9,
+    )
+
+    add_h2(doc, "1.2 Scope")
+    add_body(
+        doc,
+        "The scope of this project includes the design, development, testing, and delivery of the Mentor Market web application, catering to:",
+        after=6,
+    )
+    add_bullet(doc, " who can browse the public marketplace and register or log in.", label="Visitors")
+    add_bullet(doc, " who can discover tutors, publish requests, book classes, learn, pay in the mock ledger, and review.", label="Students")
+    add_bullet(doc, " who can publish services, apply to requests, teach, assess students, and monitor simulated earnings.", label="Tutors")
+    add_bullet(doc, " who oversee users, verification, reports, records, and platform analytics.", label="Administrators", after=6)
+    add_body(
+        doc,
+        "Mentor Market is an academic MVP. Payments and withdrawals are simulated, files are represented by URLs, messages are database-backed, and the platform does not host real-time video classes.",
+        after=8,
+    )
+
+    add_h2(doc, "1.3 Definitions, Acronyms, and Abbreviations")
+    definitions = [
+        ("API", ": Application Programming Interface."),
+        ("JWT", ": JSON Web Token used for authenticated sessions."),
+        ("MVC", ": Model–View–Controller backend organization."),
+        ("MVP", ": Minimum Viable Product."),
+        ("RBAC", ": Role-Based Access Control."),
+        ("REST", ": Representational State Transfer style used by the HTTP API."),
+    ]
+    for index, (label, text) in enumerate(definitions):
+        add_bullet(doc, text, label=label, after=0 if index < len(definitions) - 1 else 7)
+
+    add_h2(doc, "1.4 References")
+    add_bullet(doc, " documentation:", label="Project and technology")
+    add_reference_link(doc, "Mentor Market repository documentation", "https://github.com/")
+    add_reference_link(doc, "React.js", "https://react.dev/")
+    add_reference_link(doc, "Express.js", "https://expressjs.com/")
+    add_reference_link(doc, "Node.js", "https://nodejs.org/")
+    add_reference_link(doc, "MySQL", "https://dev.mysql.com/doc/")
+
+    # Physical page 4
+    add_h2(doc, "1.5 Overview", page_break=True)
+    add_body(
+        doc,
+        "Section 2 provides an overall description of the product, including its user classes and environment. Section 3 details the functional and non-functional requirements. Section 4 outlines the technology stack and architectural overview. Section 5 presents the development plan, including sprint-wise breakdown and deliverables.",
+        after=14,
+    )
+
+    add_h1(doc, "2. Overall Description")
+    add_h2(doc, "2.1 Product Perspective")
+    add_body(
+        doc,
+        "Mentor Market is a standalone three-tier web application. A React single-page interface communicates with an Express.js REST API using HTTP and JSON. The API applies authentication, role checks, validation, ownership rules, and business workflows before accessing the MySQL database.",
+        after=9,
+    )
+
+    add_h2(doc, "2.2 Product Features")
+    features = [
+        ("Identity and Role Security", ": Registration, login, JWT sessions, profiles, protected routes, and role dashboards."),
+        ("Tutor and Course Discovery", ": Search, filters, details, ratings, verification badges, saved items, history, and comparison."),
+        ("Student Tutoring Requests", ": Students publish and manage learning needs with budget, mode, location, and schedule."),
+        ("Tutor Service Publishing", ": Tutors manage priced services with subject, level, mode, availability, trial, and media URLs."),
+        ("Applications and Matching", ": Tutors propose; students decide; acceptance hires one tutor and creates a booking."),
+        ("Scheduling and Booking", ": Availability, trial and recurring classes, conflict prevention, and controlled status transitions."),
+        ("Communication and Notifications", ": Persistent messages, unread state, reporting, and database-backed in-app notices."),
+        ("Learning Management and Progress", ": Materials, assignments, grading, quizzes, automatic scores, and analytics."),
+        ("Simulated Finance", ": Mock payments, platform commission, tutor earnings, and withdrawal requests."),
+        ("Trust, Safety, and Administration", ": Reviews, tutor verification, reports, suspension, moderation, and analytics."),
+    ]
+    for number, (label, text) in enumerate(features, 1):
+        add_numbered(doc, number, text, label=label, after=0)
+
+    add_h2(doc, "2.3 User Classes and Characteristics")
+    add_numbered(
+        doc,
+        1,
+        ": Unauthenticated users who browse public tutors, services, student requests, and information pages.",
+        label="Visitors",
+        after=0,
+    )
+
+    # Physical page 5
+    p = add_numbered(
+        doc,
+        2,
+        ": Learners seeking discovery, booking, communication, learning, simulated payment, and progress tools.",
+        label="Students",
+        after=0,
+    )
+    p.paragraph_format.page_break_before = True
+    add_numbered(
+        doc,
+        3,
+        ": Mentors who publish services, respond to requests, manage classes, assess learners, and view earnings.",
+        label="Tutors",
+        after=0,
+    )
+    add_numbered(
+        doc,
+        4,
+        ": Platform overseers responsible for analytics, trust, user status, and marketplace moderation.",
+        label="Administrators",
+        after=7,
+    )
+
+    add_h2(doc, "2.4 Operating Environment")
+    environment = [
+        ("Web Application", ": Accessible on modern Chrome, Firefox, Edge, and Safari browsers."),
+        ("Mobile Compatibility", ": Responsive layouts for smartphones and tablets."),
+        ("Server-Side", ": Node.js and Express.js on a Linux-compatible host."),
+        ("Database", ": MySQL 8 through mysql2 connection pooling."),
+        ("Development", ": npm, Visual Studio Code, Node test runner, Supertest, and Postman."),
+    ]
+    for label, text in environment:
+        add_bullet(doc, text, label=label)
+
+    add_h2(doc, "2.5 Constraints")
+    constraints = [
+        ("Security", ": Passwords use bcrypt-compatible hashes; protected actions require JWT and server RBAC."),
+        ("Relational Data", ": Persistence must remain compatible with the normalized MySQL schema."),
+        ("MVP Finance", ": Payments, commission, earnings, and withdrawals are simulations only."),
+        ("MVP Files and Media", ": Files and videos are URL references; live video hosting is outside scope."),
+        ("Time & Resources", ": Delivery is limited to the CSE470 academic schedule and team resources."),
+    ]
+    for label, text in constraints:
+        add_bullet(doc, text, label=label)
+
+    add_h2(doc, "2.6 Assumptions and Dependencies")
+    assumptions = [
+        "Users have a stable internet connection and supported web browser.",
+        "Tutors provide accurate profile, schedule, price, and credential information.",
+        "Administrators manually review verification evidence, safety reports, and withdrawals.",
+        "The Node.js runtime, MySQL service, JWT secret, API URL, and CORS origins are configured.",
+    ]
+    for text in assumptions:
+        add_bullet(doc, text)
+
+    add_h1(doc, "3. System Requirements")
+    add_h2(doc, "3.1 Functional Requirements")
+    add_h3(doc, "3.1.1 Authentication & Authorization")
+    add_numbered(doc, 1, " Account Authentication:", after=0)
+    add_circle_bullet(
+        doc,
+        "FR-1: The system shall allow a visitor to register as a student or tutor using a valid unique email and password.",
+    )
+    add_circle_bullet(
+        doc,
+        "FR-2: The system shall hash passwords and authenticate active users before issuing a time-limited JWT.",
+    )
+
+    # Physical page 6
+    p = add_numbered(doc, 2, " Role-Based Access Control (RBAC):", after=0)
+    p.paragraph_format.page_break_before = True
+    add_circle_bullet(
+        doc,
+        "FR-3: The system shall provide separate student, tutor, and administrator dashboards.",
+    )
+    add_circle_bullet(
+        doc,
+        "FR-4: The system shall enforce role, ownership, and active-account checks on every protected operation.",
+        after=5,
+    )
+
+    add_h3(doc, "3.1.2 Student & Tutor Interaction")
+    interaction_groups = [
+        (
+            "Tutor Discovery:",
+            [
+                "FR-5: Visitors and students shall search and filter active tutors by text, subject, mode, location, price, rating, and day.",
+                "FR-6: Students shall save tutors and courses, record recent course views, and compare selected courses.",
+            ],
+        ),
+        (
+            "Marketplace Publishing:",
+            [
+                "FR-7: Tutors shall create, update, deactivate, and delete their own service listings.",
+                "FR-8: Students shall create, update, close, and delete their own tutoring requests.",
+            ],
+        ),
+        (
+            "Applications & Bookings:",
+            [
+                "FR-9: A tutor shall submit one proposal per open request; acceptance shall reject competitors and create one pending booking.",
+                "FR-10: Students shall request supported classes only within tutor availability and without active schedule conflicts.",
+                "FR-11: Participants shall follow role-permitted booking transitions; only tutors shall update class access details after creation.",
+            ],
+        ),
+    ]
+    for group_index, (label, requirements) in enumerate(interaction_groups, 1):
+        add_numbered(doc, group_index, f" {label}")
+        for requirement in requirements:
+            add_circle_bullet(doc, requirement)
+
+    add_h3(doc, "3.1.3 Learning Management Services")
+    learning_groups = [
+        (
+            "Communication:",
+            [
+                "FR-12: Authenticated users shall exchange persistent messages, view conversations, unread counts, and recent history.",
+                "FR-13: The system shall create database-backed notifications for significant marketplace and learning events.",
+            ],
+        ),
+        (
+            "Materials & Assignments:",
+            [
+                "FR-14: Tutors shall share URL-based study materials with eligible students.",
+                "FR-15: Tutors shall create assignments for students with a valid teaching relationship.",
+                "FR-16: Students shall submit assignment text or a file URL, and tutors shall grade submitted work.",
+            ],
+        ),
+        (
+            "Quizzes & Progress:",
+            [
+                "FR-17: Tutors shall create structured quizzes; eligible students shall attempt them and receive automatic percentage scores.",
+                "FR-18: The student dashboard shall derive progress from classes, assignments, grades, quizzes, and tutor feedback.",
+            ],
+        ),
+    ]
+    for group_index, (label, requirements) in enumerate(learning_groups, 1):
+        add_numbered(doc, group_index, f" {label}")
+        for requirement in requirements:
+            add_circle_bullet(doc, requirement)
+
+    # Physical page 7
+    add_h3(doc, "3.1.4 Additional Services", page_break=True)
+    additional_groups = [
+        (
+            "Reviews & Simulated Finance:",
+            [
+                "FR-19: A booking participant shall submit one 1–5 rating for a completed booking.",
+                "FR-20: The server shall create one mock booking payment and derive its amount, commission, and tutor earning.",
+                "FR-21: Tutors shall view simulated earnings and request withdrawals within their available balance.",
+            ],
+        ),
+        (
+            "Trust & Safety:",
+            [
+                "FR-22: Tutors shall submit credential URLs; administrators shall verify or reject them with feedback.",
+                "FR-23: Users shall submit safety reports; administrators shall investigate, resolve, or dismiss them.",
+            ],
+        ),
+        (
+            "Administration:",
+            [
+                "FR-24: Administrators shall view analytics and protected marketplace records.",
+                "FR-25: Administrators shall activate or suspend users but shall not suspend their own account.",
+            ],
+        ),
+    ]
+    for group_index, (label, requirements) in enumerate(additional_groups, 1):
+        add_numbered(doc, group_index, f" {label}")
+        for requirement in requirements:
+            add_circle_bullet(doc, requirement)
+
+    add_h2(doc, "3.2 Non-Functional Requirements")
+    nfr_groups = [
+        (
+            "3.2.1 Performance Requirements",
+            [
+                "NFR-1: Normal API requests should complete within two seconds, excluding network and remote-media delay.",
+                "NFR-2: Search shall use debouncing where appropriate, and collection responses shall remain bounded.",
+            ],
+        ),
+        (
+            "3.2.2 Security Requirements",
+            [
+                "NFR-3: Passwords shall be hashed; protected requests shall validate JWT, role, status, and ownership.",
+                "NFR-4: The backend shall use validation, secure headers, CORS rules, rate limiting, parameterized SQL, and controlled responses.",
+                "NFR-5: Production shall use HTTPS and environment-supplied secrets.",
+            ],
+        ),
+        (
+            "3.2.3 Reliability & Availability",
+            [
+                "NFR-6: Constraints and transactions shall protect integrity, uniqueness, balances, and valid state changes.",
+                "NFR-7: The API shall expose health and consistent errors; deployment owns backups and uptime.",
+            ],
+        ),
+        (
+            "3.2.4 Maintainability",
+            [
+                "NFR-8: Backend MVC layers and reusable frontend components, hooks, and API configuration shall stay separated.",
+                "NFR-9: Setup, schema, API examples, and critical tests shall remain current.",
+            ],
+        ),
+        (
+            "3.2.5 Scalability",
+            [
+                "NFR-10: The stateless API shall use MySQL pooling, indexes, reusable query builders, and bounded results so instances can scale without changing client contracts.",
+            ],
+        ),
+    ]
+    for heading, requirements in nfr_groups:
+        add_h3(doc, heading)
+        for requirement in requirements:
+            add_bullet(doc, requirement)
+
+    # Physical page 8
+    add_h2(doc, "3.3 External Interface Requirements", page_break=True)
+    add_h3(doc, "3.3.1 User Interfaces")
+    add_bullet(doc, "UI-1: A responsive React interface shall support desktop, tablet, and mobile viewports.")
+    add_bullet(doc, "UI-2: Public navigation and separate role dashboards shall show appropriate actions and feedback.")
+    add_bullet(doc, "UI-3: Forms and dialogs shall support labels, keyboard focus, validation, loading, empty, and error states.")
+
+    add_h3(doc, "3.3.2 Hardware Interfaces")
+    add_bullet(doc, "HI-1: No specialized hardware is required beyond a modern browser client and standard server infrastructure.")
+
+    add_h3(doc, "3.3.3 Software Interfaces")
+    add_bullet(doc, "SI-1: Express.js shall communicate with MySQL through mysql2 for queries and transactions.")
+    add_bullet(doc, "SI-2: The browser shall display bundled media and remote URLs for files, proof, video, and class access.")
+    add_bullet(doc, "SI-3: The MVP shall not require a real payment gateway, file-storage API, SMS/email provider, or video SDK.")
+
+    add_h3(doc, "3.3.4 Communication Interfaces")
+    add_bullet(doc, "CI-1: React and Express shall communicate through RESTful HTTP/HTTPS endpoints using JSON.")
+    add_bullet(doc, "CI-2: Protected requests shall use bearer JWTs and consistent success or error envelopes.")
+
+    add_h1(doc, "4. Technology Stack & Architectural Overview")
+    add_h2(doc, "4.1 Technology Stack Components")
+    stack = [
+        ("React.js", ": Responsive single-page presentation layer."),
+        ("React Router, Axios & Vite", ": Routing, API communication, development, and bundling."),
+        ("Node.js & Express.js", ": REST API, validation, authorization, and business workflows."),
+        ("MySQL & mysql2", ": Relational persistence, constraints, search, transactions, and pooling."),
+        ("JWT, bcryptjs, Helmet & CORS", ": Session identity, password hashing, headers, and origin control."),
+        ("Node Test Runner, Supertest & Postman", ": Automated and manual API verification."),
+    ]
+    for number, (label, text) in enumerate(stack, 1):
+        add_numbered(doc, number, text, label=label)
+
+    add_h2(doc, "4.2 High-Level Architecture")
+    architecture = [
+        ("Presentation Layer (React.js)", ": Displays public and protected pages, handles forms, and calls the API."),
+        ("Business Logic Layer (Express.js/Node.js)", ": Enforces validation, authorization, workflows, and responses."),
+        ("Data Access Layer (Models/Query Builders)", ": Encapsulates persistence, search, aggregation, and transactions."),
+        ("Data Layer (MySQL)", ": Stores identities, marketplace records, learning data, finance, trust, and engagement."),
+    ]
+    for number, (label, text) in enumerate(architecture, 1):
+        add_numbered(doc, number, text, label=label)
+
+    # Physical page 9
+    add_h1(doc, "5. Tentative Development Plan (Agile Methodology)", page_break=True)
+    sprint_content = [
+        (
+            "Sprint 1 (Weeks 1–2): Foundation, Authentication & Profiles",
+            [
+                "Establish the frontend, backend, environment configuration, MySQL schema, and seed data.",
+                "Implement registration, login, JWT/RBAC, profiles, protected routes, and role layouts.",
+            ],
+        ),
+        (
+            "Sprint 2 (Weeks 3–4): Marketplace & Discovery",
+            [
+                "Implement tutor services, student requests, public details, search, filters, sorting, and pagination.",
+                "Add saved tutors/courses, recent views, recommendation ordering, and course comparison.",
+            ],
+        ),
+        (
+            "Sprint 3 (Weeks 5–6): Applications, Bookings & Communication",
+            [
+                "Implement proposals, decisions, availability, trials, schedule conflicts, and booking transitions.",
+                "Add persistent messages, unread state, flags, and in-app notifications.",
+            ],
+        ),
+        (
+            "Sprint 4 (Week 7): Learning, Finance & Trust Services",
+            [
+                "Implement materials, assignments, grading, quizzes, progress, reviews, and verification.",
+                "Add the simulated payment ledger, commission, earnings, withdrawals, and safety reports.",
+            ],
+        ),
+        (
+            "Sprint 5 (Weeks 8–9): Administration, Quality & Delivery",
+            [
+                "Complete analytics, marketplace management, user status, and moderation workflows.",
+                "Perform responsive, accessibility, security, testing, documentation, and final-demo work.",
+            ],
+        ),
+    ]
+    for heading, bullets in sprint_content:
+        add_h3(doc, heading)
+        for bullet in bullets:
+            add_bullet(doc, bullet)
+
+    # Physical page 10
+    add_h1(doc, "6. Acceptance Criteria", page_break=True)
+    criteria = [
+        "The documented schema and seed data initialize in MySQL 8 or the compatible local MariaDB environment.",
+        "The frontend, API, and database start through the documented npm commands; the health endpoint succeeds.",
+        "Student, tutor, and provisioned administrator users authenticate and remain restricted to authorized operations.",
+        "Visitors browse public tutors, services, reviews, and published student requests without authentication.",
+        "A student can discover a tutor, publish a request, decide a proposal, create a conflict-free booking, learn, and make a mock payment.",
+        "A tutor can publish a service, apply, manage bookings, teach, assess learners, view earnings, and submit verification evidence.",
+        "The system prevents duplicate proposals, competing acceptances, booking conflicts, repeated trials, premature completion, duplicate payments, and invalid reviews.",
+        "Protected materials, assignments, quizzes, and student records require the applicable teaching relationship.",
+        "Finance calculations are server-derived and clearly identified as simulations rather than real settlement.",
+        "An administrator can inspect analytics, verify tutors, moderate reports, manage user status, and process withdrawal records through protected operations.",
+        "Backend automated tests pass and the React production build completes without errors.",
+        "Main public and role workflows remain usable at common mobile and desktop viewport sizes.",
+    ]
+    for number, criterion in enumerate(criteria, 1):
+        add_numbered(doc, number, f" {criterion}")
+
+    add_h1(doc, "7. Conclusion")
+    add_body(
+        doc,
+        "This SRS provides a detailed outline for the design and development of “Mentor Market”—a comprehensive tutoring marketplace using React.js, Node.js, Express.js, and MySQL. It integrates discovery, requests, applications, booking, communication, learning, simulated finance, trust, and administration while clearly separating MVP behavior from future real-world integrations. Following the outlined Agile sprints will support a robust, scalable, and user-friendly academic project.",
+        after=0,
+    )
+
+
+def shade_paragraph(paragraph, fill):
+    p_pr = paragraph._p.get_or_add_pPr()
+    shd = p_pr.find(qn("w:shd"))
+    if shd is None:
+        shd = OxmlElement("w:shd")
+        p_pr.append(shd)
+    shd.set(qn("w:fill"), fill)
+
+
+def add_sprint_heading(doc, text, color=BLACK, page_break=False):
+    p = doc.add_paragraph()
+    p.paragraph_format.page_break_before = page_break
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(16)
+    p.paragraph_format.line_spacing = 1
+    set_run_font(
+        p.add_run(text),
+        name=ARIAL if color == BLACK else TIMES,
+        size=20 if color == BLACK else 24,
+        bold=color != BLACK,
+        color=color,
+    )
+    return p
+
+
+def add_feature_heading(doc, text, color=BLACK, size=None, highlight=None):
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(12)
+    p.paragraph_format.line_spacing = 1
+    if highlight:
+        shade_paragraph(p, highlight)
+    set_run_font(
+        p.add_run(text),
+        name=TIMES,
+        size=size or (16 if color == BLACK else 24),
+        bold=True,
+        color=color,
+    )
+    return p
+
+
+def set_picture_alt_text(inline_shape, description):
+    doc_pr = inline_shape._inline.docPr
+    doc_pr.set("descr", description)
+    doc_pr.set("title", description)
+
+
+def add_picture_fit(doc, filename, max_width=6.5, max_height=7.55, alt_text=None):
+    path = ASSET_DIR / filename
+    if not path.exists():
+        raise FileNotFoundError(f"Required SRS screenshot not found: {path}")
+    with Image.open(path) as image:
+        width_px, height_px = image.size
+    width = max_width
+    height = width * height_px / width_px
+    if height > max_height:
+        height = max_height
+        width = height * width_px / height_px
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_after = Pt(0)
+    shape = p.add_run().add_picture(str(path), width=Inches(width), height=Inches(height))
+    set_picture_alt_text(shape, alt_text or filename.replace("-", " ").replace(".png", ""))
+    return p
+
+
+def add_two_pictures(doc, first, second, max_height=3.25):
+    table = doc.add_table(rows=2, cols=1)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = False
+    remove_table_borders(table)
+    for index, filename in enumerate((first, second)):
+        cell = table.cell(index, 0)
+        set_cell_margins(cell, top=25, start=0, bottom=25, end=0)
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        path = ASSET_DIR / filename
+        if not path.exists():
+            raise FileNotFoundError(f"Required SRS screenshot not found: {path}")
+        with Image.open(path) as image:
+            width_px, height_px = image.size
+        width = min(6.5, max_height * width_px / height_px)
+        height = width * height_px / width_px
+        shape = p.add_run().add_picture(str(path), width=Inches(width), height=Inches(height))
+        set_picture_alt_text(shape, filename.replace("-", " ").replace(".png", ""))
+    return table
+
+
+APPENDIX_PAGES = [
+    {
+        "sprint": ("SPRINT 1", BLACK),
+        "title": ("Feature 1 & 2: Registration and Role Authentication", BLACK, 16, None),
+        "prose": "Visitors choose a student or tutor account, provide validated information, and create a role profile.",
+        "images": ["register.png"],
+    },
+    {
+        "title": ("Feature 3: Login", BLACK, 16, None),
+        "prose": "Active users enter their credentials and are redirected to the workspace associated with their role.",
+        "images": ["login.png"],
+    },
+    {
+        "title": ("Feature 4: Public Home and Marketplace Entry", BLACK, 16, None),
+        "images": ["home.png"],
+    },
+    {
+        "title": ("Feature 5: Tutor Directory", BLACK, 16, None),
+        "prose": "Visitors and students browse active tutor profiles and apply subject, mode, price, rating, location, and day filters.",
+        "images": ["tutors.png"],
+    },
+    {
+        "title": ("Feature 6: Student Dashboard", BLACK, 16, None),
+        "images": ["student-dashboard.png"],
+    },
+    {
+        "sprint": ("SPRINT 2", BLACK),
+        "title": ("Feature 7: Personalized Course Discovery", BLACK, 16, None),
+        "images": ["student-discovery.png"],
+    },
+    {
+        "title": ("Feature 8: Course Details and Learning Path", BLACK, 16, None),
+        "images": ["student-course.png"],
+    },
+    {
+        "title": ("Feature 9: Saved Courses and Comparison", BLACK, 16, None),
+        "images": ["student-saved-courses.png"],
+    },
+    {
+        "title": ("Feature 10: Tutoring Request Publishing", BLACK, 16, None),
+        "images": ["student-create-request.png"],
+    },
+    {
+        "title": ("Feature 11: Applications and Matching", FEATURE_BLUE, 24, None),
+        "images": ["student-applications.png"],
+    },
+    {
+        "sprint": ("SPRINT 3", FEATURE_BLUE),
+        "title": ("Feature 12: Booking Management", FEATURE_BLUE, 24, None),
+        "images": ["student-bookings.png"],
+    },
+    {
+        "title": ("Feature 13: Persistent Messaging", FEATURE_BLUE, 24, None),
+        "images": ["student-messages.png"],
+    },
+    {
+        "title": ("Feature 14: Study Materials", FEATURE_BLUE, 24, None),
+        "images": ["student-materials.png"],
+    },
+    {
+        "title": ("Feature 15: Assignments and Grading", FEATURE_BLUE, 24, None),
+        "images": ["student-assignments.png"],
+    },
+    {
+        "title": ("Feature 16: Quizzes and Automatic Scoring", FEATURE_BLUE, 24, RED),
+        "images": ["student-quizzes.png"],
+    },
+    {
+        "title": ("Feature 17: Progress Analytics", FEATURE_BLUE, 24, None),
+        "images": ["student-progress.png"],
+    },
+    {
+        "sprint": ("Sprint 4", FEATURE_BLUE),
+        "title": ("Enhanced tutor workspace: improvement of earlier marketplace features", FEATURE_BLUE, 14, None),
+        "images": ["tutor-dashboard.png"],
+    },
+    {
+        "title": ("Feature 18: Tutor Creator Studio", FEATURE_BLUE, 24, None),
+        "images": ["tutor-create-service.png"],
+    },
+    {
+        "title": ("Service Listing Management", FEATURE_BLUE, 16, None),
+        "images": ["tutor-services.png"],
+    },
+    {
+        "title": ("Student Request Marketplace", FEATURE_BLUE, 16, None),
+        "images": ["tutor-requests.png"],
+    },
+    {
+        "title": ("Feature 19: Tutor Verification", FEATURE_BLUE, 24, RED),
+        "images": ["tutor-verification.png"],
+    },
+    {
+        "title": ("Feature 20: Earnings and Withdrawal Requests", FEATURE_BLUE, 24, None),
+        "images": ["tutor-earnings.png"],
+    },
+    {
+        "sprint": ("SPRINT 5", FEATURE_BLUE),
+        "title": ("Feature 21: Simulated Payment History", FEATURE_BLUE, 24, None),
+        "images": ["student-payments.png"],
+    },
+    {
+        "title": ("Feature 22: Administrator Analytics", FEATURE_BLUE, 24, None),
+        "images": ["admin-dashboard.png"],
+    },
+    {
+        "title": ("Enhanced Admin Dashboard: user search and moderation", FEATURE_BLUE, 16, RED),
+        "images": ["admin-users.png"],
+    },
+    {
+        "title": ("Report Review and Marketplace Safety", FEATURE_BLUE, 16, DEEP_RED),
+        "images": ["admin-reports.png"],
+    },
+]
+
+
+def add_sprint_appendix(doc):
+    for page_index, page in enumerate(APPENDIX_PAGES):
+        sprint = page.get("sprint")
+        if sprint:
+            add_sprint_heading(
+                doc,
+                sprint[0],
+                color=sprint[1],
+                page_break=True,
+            )
+        else:
+            title_probe = doc.add_paragraph()
+            title_probe.paragraph_format.page_break_before = True
+            title_probe.paragraph_format.space_after = Pt(0)
+            title_probe.paragraph_format.line_spacing = 1
+            # An empty page-start paragraph mirrors the pasted-evidence spacing in the reference.
+            set_run_font(title_probe.add_run(" "), size=1, color=WHITE)
+
+        title, color, size, highlight = page["title"]
+        add_feature_heading(doc, title, color=color, size=size, highlight=highlight)
+        if page.get("prose"):
+            add_body(doc, page["prose"], after=11, align=WD_ALIGN_PARAGRAPH.LEFT)
+
+        images = page["images"]
+        if len(images) == 1:
+            add_picture_fit(
+                doc,
+                images[0],
+                max_width=6.5,
+                max_height=7.45 if sprint else 7.9,
+                alt_text=title,
+            )
+        else:
+            add_two_pictures(doc, images[0], images[1])
+
+
+def set_document_properties(doc):
+    props = doc.core_properties
+    props.title = "Mentor Market - CSE470 Project SRS"
+    props.subject = "Software Requirements Specification for Mentor Market"
+    props.author = "Sieuti Zaman; Mumtasim Daiyan; Abir Saha; Samina Fairooz Urbi"
+    props.last_modified_by = "Mentor Market Project Team"
+    props.keywords = "Mentor Market, CSE470, SRS, tutoring marketplace, software requirements"
+    props.comments = (
+        "Created in the visual format of the supplied WeHeal CSE470 SRS and grounded in "
+        "the implemented Mentor Market repository."
+    )
 
 
 def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    missing_assets = sorted(
+        {
+            filename
+            for page in APPENDIX_PAGES
+            for filename in page["images"]
+            if not (ASSET_DIR / filename).exists()
+        }
+    )
+    if missing_assets:
+        raise FileNotFoundError(
+            "The screenshot appendix is incomplete. Missing: " + ", ".join(missing_assets)
+        )
+
     doc = Document()
     configure_document(doc)
     add_cover(doc)
-    content_section = doc.add_section(WD_SECTION.NEW_PAGE)
-    add_header_footer(content_section)
-
-    add_front_matter_heading(doc, "Document Control")
-    add_table(doc, ["Field", "Value"], [
-        ("Document title", "Software Requirements Specification — Mentor Market"),
-        ("Version", "1.0"),
-        ("Status", "Baseline"),
-        ("Intended audience", "Project team, course instructor, testers, maintainers, and evaluators"),
-        ("Source baseline", "Mentor Market repository implementation and database schema as inspected on 24 July 2026"),
-    ], [2, 4.8])
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(12)
-    p.paragraph_format.space_after = Pt(6)
-    p.paragraph_format.keep_with_next = True
-    apply_font(p.add_run("Revision History"), size=14, bold=True, color=TEAL)
-    add_table(doc, ["Version", "Date", "Author", "Description"], [
-        ("1.0", "24 Jul 2026", "Mentor Market Project Team", "Initial project-specific SRS baseline"),
-    ], [0.8, 1.1, 2.0, 3.0])
-    doc.add_page_break()
-    add_front_matter_heading(doc, "Table of Contents")
-    add_static_toc(doc, [
-        ("1. Introduction", 1, 5),
-        ("1.1 Purpose", 2, 5),
-        ("1.2 Scope", 2, 5),
-        ("1.3 Definitions, Acronyms, and Abbreviations", 2, 6),
-        ("1.4 References", 2, 6),
-        ("1.5 Overview", 2, 7),
-        ("2. Overall Description", 1, 7),
-        ("2.1 Product Perspective", 2, 7),
-        ("2.2 Major Product Features", 2, 7),
-        ("2.3 User Classes and Characteristics", 2, 8),
-        ("2.4 Operating Environment", 2, 9),
-        ("2.5 Constraints", 2, 9),
-        ("2.6 Assumptions and Dependencies", 2, 10),
-        ("3. System Requirements", 1, 10),
-        ("3.1 Functional Requirements", 2, 10),
-        ("3.1.1 Authentication and Profiles", 3, 10),
-        ("3.1.2 Discovery and Marketplace", 3, 11),
-        ("3.1.3 Applications, Bookings, and Communication", 3, 12),
-        ("3.1.4 Learning Management", 3, 13),
-        ("3.1.5 Finance", 3, 14),
-        ("3.1.6 Trust, Safety, and Administration", 3, 15),
-        ("3.1.7 Business Rules", 3, 16),
-        ("3.2 Non-Functional Requirements", 2, 17),
-        ("3.2.1 Performance Requirements", 3, 17),
-        ("3.2.2 Security and Privacy Requirements", 3, 17),
-        ("3.2.3 Reliability and Availability Requirements", 3, 18),
-        ("3.2.4 Usability and Accessibility Requirements", 3, 18),
-        ("3.2.5 Maintainability, Testability, Portability, and Scalability", 3, 18),
-        ("3.3 External Interface Requirements", 2, 19),
-        ("3.3.1 User Interfaces", 3, 19),
-        ("3.3.2 Hardware Interfaces", 3, 19),
-        ("3.3.3 Software Interfaces", 3, 20),
-        ("3.3.4 Communication Interfaces", 3, 20),
-        ("4. Technology Stack & Architectural Overview", 1, 21),
-        ("4.1 Technology Stack Components", 2, 21),
-        ("4.2 High-Level Architecture", 2, 21),
-        ("4.3 Data Model and Integrity", 2, 22),
-        ("4.3.1 Core Entities", 3, 22),
-        ("4.3.2 Relationship Model", 3, 23),
-        ("4.3.3 Data Integrity and Retention", 3, 23),
-        ("4.4 Key Use Cases", 2, 24),
-        ("4.4.1 Booking State Model", 3, 24),
-        ("5. Tentative Development Plan (Agile Methodology)", 1, 25),
-        ("5.1 Definition of Done", 2, 26),
-        ("6. Acceptance Criteria", 1, 26),
-        ("6.1 System Acceptance Criteria", 2, 26),
-        ("6.2 Requirement Traceability Matrix", 2, 27),
-        ("7. Conclusion", 1, 28),
-        ("Appendix A — Out of Scope for the MVP", 1, 29),
-        ("Appendix B — Risks and Mitigations", 1, 30),
-    ])
-    note = doc.add_paragraph(
-        "This contents table is embedded for immediate viewing and is configured to refresh automatically in Microsoft Word."
-    )
-    note.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    apply_font(note.runs[0], size=9, italic=True, color=GRAY)
-    doc.add_page_break()
-
-    doc.add_heading("1. Introduction", level=1)
-    doc.add_heading("1.1 Purpose", level=2)
-    doc.add_paragraph(
-        "This Software Requirements Specification defines the functional and non-functional requirements for Mentor Market, "
-        "a full-stack web marketplace that connects students with tutors and supports the complete learning relationship—from "
-        "discovery and hiring to classes, learning resources, assessment, payment, progress tracking, and review. It provides "
-        "a shared baseline for design, implementation, testing, evaluation, and future maintenance."
-    )
-    doc.add_heading("1.2 Scope", level=2)
-    doc.add_paragraph("Mentor Market serves three primary roles:")
-    add_bullet(doc, "Students discover and compare tutor services, publish tutoring requests, hire tutors, book classes, communicate, complete learning activities, make simulated payments, track progress, and review tutors.")
-    add_bullet(doc, "Tutors publish services, apply to student requests, manage bookings, communicate, distribute materials, create assignments and quizzes, review earnings, request withdrawals, and submit credentials for verification.")
-    add_bullet(doc, "Administrators oversee users, tutor verification, marketplace records, payments, withdrawals, reports, and platform analytics.")
-    doc.add_paragraph(
-        "The product is a responsive React web application backed by an Express REST API and a normalized MySQL database. "
-        "The academic MVP stores file references as URLs and simulates payments; it does not process real money or upload files to third-party storage."
-    )
-    doc.add_heading("1.3 Definitions, Acronyms, and Abbreviations", level=2)
-    add_table(doc, ["Term", "Meaning"], [
-        ("API", "Application Programming Interface; the REST communication layer between frontend and backend."),
-        ("JWT", "JSON Web Token used for authenticated sessions and role claims."),
-        ("RBAC", "Role-Based Access Control restricting operations to student, tutor, or administrator roles."),
-        ("MVP", "Minimum Viable Product; the implemented academic product baseline."),
-        ("REST", "Representational State Transfer style used by the HTTP API."),
-        ("CRUD", "Create, Read, Update, and Delete operations."),
-        ("Trial class", "A limited introductory booking offered by a tutor service."),
-        ("Verification", "Administrator review of a tutor's credentials and supporting evidence."),
-        ("Platform commission", "Ten percent of a paid booking amount retained in the simulated ledger."),
-    ], [1.4, 5.4])
-    doc.add_heading("1.4 References", level=2)
-    for text in [
-        "IEEE/ISO/IEC 29148 principles for requirements engineering and SRS structure.",
-        "Mentor Market README, frontend routes, backend REST routes, tests, and MySQL schema.",
-        "React, Express.js, Node.js, MySQL, JWT, bcryptjs, Axios, Vite, Helmet, and express-validator documentation.",
-        "The supplied WeHeal CSE470 SRS document, used as a structural and academic presentation reference.",
-    ]:
-        add_bullet(doc, text)
-    doc.add_heading("1.5 Overview", level=2)
-    doc.add_paragraph(
-        "Section 2 describes the product, users, environment, constraints, and assumptions. Section 3 defines functional, "
-        "non-functional, and interface requirements. Section 4 describes the technology stack, architecture, data model, and "
-        "key use cases. Section 5 presents the agile development plan, Section 6 provides acceptance and traceability criteria, "
-        "and Section 7 concludes the specification."
-    )
-
-    doc.add_heading("2. Overall Description", level=1)
-    doc.add_heading("2.1 Product Perspective", level=2)
-    doc.add_paragraph(
-        "Mentor Market is a standalone, three-tier web application. A React single-page application communicates with an "
-        "Express.js MVC API over HTTP/JSON. The API applies authentication, role checks, validation, rate limiting, and business "
-        "rules before reading or writing MySQL. The platform combines a two-sided service marketplace with learning-management, "
-        "communication, trust, moderation, and simulated financial capabilities."
-    )
-    doc.add_heading("2.2 Major Product Features", level=2)
-    features = [
-        ("Identity and access", "Student/tutor registration, login for all provisioned roles, JWT sessions, and protected role routes."),
-        ("Tutor discovery", "Search, filters, profile details, verification badges, ratings, saved tutors, saved courses, recent views, recommendations, and comparison."),
-        ("Two-sided marketplace", "Tutor service listings, student requests, tutor proposals, application decisions, and bookings."),
-        ("Learning workspace", "Messages, study materials, assignments, submissions, grading, quizzes, scoring, and progress analytics."),
-        ("Finance", "Mock payment ledger, 10% commission, tutor earnings, and withdrawal requests."),
-        ("Trust and safety", "Booking-linked reviews, tutor credential verification, message reporting, safety reports, user suspension, and administrative moderation."),
-        ("Administration", "Role-protected dashboard, aggregate statistics, and marketplace resource management."),
-    ]
-    add_table(doc, ["Feature group", "Summary"], features, [1.7, 5.1])
-    doc.add_heading("2.3 User Classes and Characteristics", level=2)
-    add_table(doc, ["User class", "Characteristics and goals", "Access level"], [
-        ("Visitor", "Browses the home page, tutor catalog, tutor details, student requests, and informational pages.", "Public, read-only"),
-        ("Student", "Seeks tutoring, compares choices, books and pays, communicates, completes learning work, and tracks progress.", "Authenticated student features"),
-        ("Tutor", "Markets services, responds to demand, teaches students, evaluates work, and manages earnings.", "Authenticated tutor features"),
-        ("Administrator", "Maintains trust, safety, quality, user status, verification, and marketplace oversight.", "Protected platform-wide management"),
-    ], [1.1, 4.0, 1.7])
-    doc.add_heading("2.4 Operating Environment", level=2)
-    for item in [
-        "Client: modern versions of Chrome, Firefox, Edge, and Safari on desktop, tablet, and mobile.",
-        "Frontend: React 19, React Router, Axios, and Vite; responsive CSS with the Inter variable font.",
-        "Server: Node.js with Express.js, deployable on a Linux-compatible host.",
-        "Database: MySQL 8 with mysql2 connection pooling and utf8mb4 character encoding.",
-        "Transport: JSON over HTTP/HTTPS between frontend and API.",
-        "Development and verification: npm, Node's test runner, Supertest, and Postman.",
-    ]:
-        add_bullet(doc, item)
-    doc.add_heading("2.5 Constraints", level=2)
-    for item in [
-        "The data model is relational and must remain compatible with MySQL 8.",
-        "Authentication uses JWT and bcrypt-compatible password hashing.",
-        "Authorization is restricted to the fixed roles student, tutor, and admin.",
-        "Payments are simulated; no production gateway, settlement, or refund transfer is in scope.",
-        "Material, proof, image, and video files are represented by URLs; managed binary upload is outside the MVP.",
-        "A booking must reference a valid student and tutor; schedule conflicts must be prevented for active time slots.",
-        "A review must be linked to a booking, have a rating from 1 to 5, and be unique per booking/reviewer pair.",
-    ]:
-        add_bullet(doc, item)
-    doc.add_heading("2.6 Assumptions and Dependencies", level=2)
-    for item in [
-        "Users have a stable internet connection and a valid email address.",
-        "Tutors accurately enter qualifications, availability, prices, locations, and supporting URLs.",
-        "Administrators manually assess submitted tutor credentials and reports.",
-        "The configured MySQL service, JWT secret, API base URL, and CORS origins are available in the environment.",
-        "Seed data may be used for demonstration, but production-like credentials must not be embedded in source code.",
-    ]:
-        add_bullet(doc, item)
-
-    doc.add_heading("3. System Requirements", level=1)
-    doc.add_heading("3.1 Functional Requirements", level=2)
-    requirements = [
-        ("FR-AUTH-01", "Registration", [
-            "The system shall self-register a student or tutor with a full name, unique valid email, and password of at least eight characters; administrator accounts shall be provisioned separately.",
-            "The system shall hash the password before persistence and create the corresponding student or tutor profile where applicable.",
-            "The system shall reject invalid, incomplete, duplicate, or unsupported registration data."
-        ]),
-        ("FR-AUTH-02", "Login, session, and logout", [
-            "The system shall authenticate an active user by email and password and issue a JWT containing identity and role.",
-            "The system shall expose the current authenticated user and shall reject invalid or expired credentials.",
-            "The system shall provide logout behavior that clears the client session."
-        ]),
-        ("FR-PROF-01", "Profile management", [
-            "Students shall update personal and learning-profile details including institution, class level, subjects, location, goals, and biography.",
-            "Tutors shall update qualifications, experience, subjects, teaching mode, hourly rate, location, availability, and biography.",
-            "Users shall update permitted account information without changing protected role or moderation fields."
-        ]),
-        ("FR-DISC-01", "Tutor discovery and filtering", [
-            "Visitors and students shall browse active, sufficiently complete tutor profiles and active services and filter by subject, mode, location, price, rating, experience, availability, verification, and trial support where available.",
-            "The system shall debounce interactive text search and paginate or progressively load results.",
-            "The system shall show tutor profile, service, rating, verification, and availability details."
-        ]),
-        ("FR-DISC-02", "Saved and personalized discovery", [
-            "Authenticated students shall save and remove tutors and courses.",
-            "The system shall record recent course views and return recent history.",
-            "The student discovery experience shall use account engagement and browser-local subject interests for ordering and shall allow comparison of two or three courses."
-        ], "Medium"),
-        ("FR-MKT-01", "Tutor service listings", [
-            "A tutor shall create, edit, deactivate, and delete owned service listings with title, subject, level, price, mode, availability, description, and optional trial/media data.",
-            "Only active services shall appear in public discovery unless an authorized administrator is reviewing records."
-        ]),
-        ("FR-MKT-02", "Student tutoring requests", [
-            "A student shall create, update, close, and delete an owned tutoring request with subject, level, budget, location, mode, preferred time, experience preference, and description.",
-            "Tutors shall browse open requests; public users may view published request summaries."
-        ]),
-        ("FR-MKT-03", "Applications and hiring", [
-            "A tutor shall submit at most one proposal per student request, including message, expected fee, and available time.",
-            "The owning student or an administrator shall accept or reject an application.",
-            "Accepting an application shall transactionally reject competing pending proposals, mark the request as hired, and create one pending booking for that request."
-        ]),
-        ("FR-BOOK-01", "Booking and availability", [
-            "A student shall view up to 31 days of tutor availability and create trial, one-time, weekly, or monthly class bookings with a future date, time, duration, and supported mode.",
-            "The system shall prevent overlapping active bookings for either participant and shall allow no more than one non-cancelled trial per student/tutor pair.",
-            "Authorized participants shall follow role-specific booking transitions; only tutors shall set meeting links or class locations."
-        ]),
-        ("FR-MSG-01", "Messaging and notifications", [
-            "Authenticated users shall exchange persistent database-backed messages with active users, view conversation summaries, and retrieve recent message history and unread state.",
-            "A recipient shall mark messages or generated notifications as read, individually or in bulk.",
-            "Recipients shall flag inappropriate messages, and the system shall deliver in-app notifications for significant marketplace and learning events."
-        ]),
-        ("FR-LEARN-01", "Study materials", [
-            "A tutor shall publish material metadata with title, subject, file URL, and an intended student or valid teaching relationship.",
-            "Authorized students shall view relevant materials; tutors and administrators shall remove materials where permitted."
-        ]),
-        ("FR-LEARN-02", "Assignments", [
-            "A tutor shall create an assignment for a student with title, description, and deadline.",
-            "The assigned student shall submit text and/or a file URL.",
-            "The tutor or administrator shall grade a submitted assignment with marks and feedback."
-        ]),
-        ("FR-LEARN-03", "Quizzes and progress", [
-            "A tutor shall create quizzes with structured questions and total score.",
-            "An eligible student shall attempt or reattempt a quiz; the system shall automatically calculate the percentage score and keep one current attempt record per student/quiz pair.",
-            "The student dashboard shall derive progress from bookings, assignments, quizzes, and completed learning activity."
-        ]),
-        ("FR-FIN-01", "Simulated payments", [
-            "A student shall create one mock payment for an owned confirmed or completed booking using a supported demonstration method.",
-            "The server shall derive the payable amount and, when marked paid, record the amount, configured commission, tutor earning, status, and paid time.",
-            "The system shall not claim that simulated payment records represent real financial settlement."
-        ]),
-        ("FR-FIN-02", "Earnings and withdrawals", [
-            "A tutor shall view gross paid revenue, platform commission, net earnings, and relevant payment history.",
-            "A tutor shall request withdrawal up to the available simulated balance.",
-            "An administrator shall approve or reject withdrawal requests."
-        ]),
-        ("FR-TRUST-01", "Reviews and ratings", [
-            "A booking participant shall submit one 1–5 star review per booking with an optional comment.",
-            "The system shall update or derive a tutor's average rating and display it in discovery and profile views.",
-            "Authorized moderation shall remove an invalid review."
-        ]),
-        ("FR-TRUST-02", "Tutor verification", [
-            "A tutor shall submit certificate, institution, proof, and demo-video references for review.",
-            "An administrator shall list pending verifications and record a verified or rejected decision with feedback.",
-            "Only verified tutors shall receive the verified badge."
-        ]),
-        ("FR-SAFE-01", "Reports and moderation", [
-            "An authenticated user shall submit a categorized report with a description and optional reported-user or message context.",
-            "Administrators shall review, resolve, or dismiss reports and preserve a moderation record.",
-            "Administrators shall activate or suspend user accounts and suspended users shall be denied authenticated access."
-        ]),
-        ("FR-ADMIN-01", "Administrative dashboard", [
-            "The admin dashboard shall display aggregate counts and marketplace/financial summaries.",
-            "Administrators shall list users, students, tutors, posts, requests, applications, bookings, payments, reviews, verifications, reports, and withdrawals as authorized.",
-            "Administrative endpoints and screens shall be inaccessible to non-admin users."
-        ]),
-    ]
-    groups = {
-        "3.1.1 Authentication and Profiles": requirements[:3],
-        "3.1.2 Discovery and Marketplace": requirements[3:7],
-        "3.1.3 Applications, Bookings, and Communication": requirements[7:10],
-        "3.1.4 Learning Management": requirements[10:13],
-        "3.1.5 Finance": requirements[13:15],
-        "3.1.6 Trust, Safety, and Administration": requirements[15:],
-    }
-    for group, reqs in groups.items():
-        doc.add_heading(group, level=3)
-        for req in reqs:
-            add_req(doc, *req)
-
-    doc.add_heading("3.1.7 Business Rules", level=3)
-    add_table(doc, ["ID", "Rule"], [
-        ("BR-01", "A user email shall be unique and every account shall have exactly one platform role."),
-        ("BR-02", "Only tutors may publish services or proposals; only students may publish tutoring requests or initiate bookings."),
-        ("BR-03", "One tutor may submit no more than one application to the same student request."),
-        ("BR-04", "A booking created from a student request shall be unique for that request."),
-        ("BR-05", "A payment shall be unique to a booking and shall calculate commission and tutor earning consistently."),
-        ("BR-06", "A reviewer may submit no more than one review per booking; ratings must be integers from 1 to 5."),
-        ("BR-07", "Tutor and student access to learning resources shall require a legitimate teaching relationship where applicable."),
-        ("BR-08", "Only an administrator may decide verification, resolve reports, suspend users, or process withdrawals."),
-    ], [0.8, 6.0])
-
-    doc.add_heading("3.2 Non-Functional Requirements", level=2)
-    nfrs = [
-        ("NFR-PERF-01", "Performance", "Under normal academic demonstration load, 95% of ordinary read/write API requests should complete within 2 seconds, excluding network latency and media transfer."),
-        ("NFR-PERF-02", "Performance", "Search input shall be debounced, and catalog endpoints shall use bounded pagination to avoid unbounded responses."),
-        ("NFR-SEC-01", "Security", "Passwords shall be stored only as bcrypt-compatible hashes; protected endpoints shall validate JWT identity and role on every request."),
-        ("NFR-SEC-02", "Security", "The server shall use Helmet, configured CORS, authentication rate limiting, request validation, and safe error responses."),
-        ("NFR-SEC-03", "Security", "Secrets, database credentials, and JWT keys shall be supplied through environment variables and shall not be committed."),
-        ("NFR-SEC-04", "Security", "Production traffic shall use HTTPS, and authorization shall be enforced server-side even when the UI hides an action."),
-        ("NFR-REL-01", "Reliability", "Database constraints and application checks shall preserve referential integrity, uniqueness, and valid state transitions."),
-        ("NFR-REL-02", "Reliability", "Unexpected errors shall be handled centrally, logged without exposing secrets, and returned using a consistent JSON error shape."),
-        ("NFR-USAB-01", "Usability", "The interface shall remain usable from 375px mobile width through common desktop widths without horizontal page scrolling."),
-        ("NFR-USAB-02", "Usability", "Forms shall provide human-readable validation feedback, and async screens shall provide loading, success, empty, and failure states."),
-        ("NFR-ACC-01", "Accessibility", "Interactive controls shall be keyboard operable, maintain visible focus, use semantic labels, and provide text alternatives for meaningful images."),
-        ("NFR-MAINT-01", "Maintainability", "Backend code shall preserve MVC separation and shared middleware/utilities; frontend code shall use reusable components, hooks, and centralized API configuration."),
-        ("NFR-TEST-01", "Testability", "Critical authentication, booking, availability, payment, tutor search, and model behavior shall be verifiable through automated tests and the Postman collection."),
-        ("NFR-PORT-01", "Portability", "The application shall run with documented npm commands on a Node-compatible environment with MySQL 8."),
-        ("NFR-SCALE-01", "Scalability", "The API shall remain stateless between requests, use database connection pooling, and bound collection responses so that additional application instances can be introduced without redesigning client contracts."),
-        ("NFR-PRIV-01", "Privacy", "Profile and report data shall be disclosed only to users and roles with a legitimate platform need; public APIs shall avoid password hashes and moderation-only fields."),
-    ]
-    nfr_groups = [
-        ("3.2.1 Performance Requirements", {"Performance"}),
-        ("3.2.2 Security and Privacy Requirements", {"Security", "Privacy"}),
-        ("3.2.3 Reliability and Availability Requirements", {"Reliability"}),
-        ("3.2.4 Usability and Accessibility Requirements", {"Usability", "Accessibility"}),
-        (
-            "3.2.5 Maintainability, Testability, Portability, and Scalability",
-            {"Maintainability", "Testability", "Portability", "Scalability"},
-        ),
-    ]
-    for heading, categories in nfr_groups:
-        heading_paragraph = doc.add_heading(heading, level=3)
-        if heading.startswith("3.2.3"):
-            heading_paragraph.paragraph_format.page_break_before = True
-        rows = [(req_id, requirement) for req_id, category, requirement in nfrs if category in categories]
-        add_table(doc, ["ID", "Requirement"], rows, [1.25, 5.55])
-
-    doc.add_heading("3.3 External Interface Requirements", level=2)
-    doc.add_heading("3.3.1 User Interfaces", level=3)
-    for item in [
-        "Public pages shall provide consistent navigation, marketplace search entry points, responsive tutor/service cards, and clear login and registration actions.",
-        "Authenticated workspaces shall provide role-specific dashboards and navigation. Unauthorized routes shall redirect or deny access.",
-        "Forms shall show labels, required states, inline validation, loading indicators, success/error feedback, and accessible focus behavior.",
-        "Catalog pages shall support pagination or progressive loading and clear empty states.",
-        "The mobile student experience shall include bottom navigation and a searchable quick-jump interface.",
-        "Dialogs, controls, and media shall support keyboard operation, meaningful accessible names, and reduced-motion preferences.",
-    ]:
-        add_bullet(doc, item)
-    doc.add_heading("3.3.2 Hardware Interfaces", level=3)
-    doc.add_paragraph(
-        "No specialized hardware is required. The system shall operate on ordinary client devices capable of running a modern "
-        "web browser and on standard Linux-compatible or cloud server infrastructure."
-    )
-    doc.add_heading("3.3.3 Software Interfaces", level=3)
-    add_table(doc, ["Interface", "Purpose", "Data format"], [
-        ("React ↔ Express API", "Authentication, discovery, marketplace, learning, finance, and administration operations.", "HTTPS + JSON"),
-        ("Express ↔ MySQL", "Transactional persistence, filtering, aggregation, referential integrity, and search.", "SQL via mysql2"),
-        ("Browser media", "Bundled demo videos, thumbnails, avatars, and remote URL references.", "Web media / URL"),
-        ("Postman collection", "Manual API exploration and end-to-end workflow verification.", "HTTP + JSON"),
-    ], [1.55, 3.75, 1.5])
-    doc.add_heading("3.3.4 Communication Interfaces", level=3)
-    doc.add_paragraph(
-        "The client shall communicate with the REST API over HTTP/HTTPS and JSON. Authenticated requests shall include a bearer "
-        "JWT. The API shall return consistent success and error envelopes with appropriate HTTP status codes and request identifiers. "
-        "CORS shall permit only configured origins, and production deployments shall use HTTPS."
-    )
-
-    doc.add_heading("4. Technology Stack & Architectural Overview", level=1)
-    doc.add_heading("4.1 Technology Stack Components", level=2)
-    add_table(doc, ["Layer / concern", "Technology", "Purpose"], [
-        ("Frontend", "React 19, React Router 7, Axios, Vite 7", "Single-page UI, routing, HTTP access, and production bundling"),
-        ("Backend", "Node.js, Express 5, ES modules", "REST API, business workflows, validation, and authorization"),
-        ("Database", "MySQL 8 / MariaDB 12+, mysql2", "Normalized relational persistence and connection pooling"),
-        ("Security", "JWT, bcryptjs, Helmet, CORS, rate limiting", "Session identity, password hashing, headers, origin control, and abuse resistance"),
-        ("Quality", "Node test runner, Supertest, Postman", "Automated and manual verification"),
-    ], [1.25, 2.4, 3.15])
-    doc.add_heading("4.2 High-Level Architecture", level=2)
-    add_table(doc, ["Layer", "Components", "Responsibility"], [
-        ("Presentation", "React pages, layouts, components, hooks, context, Axios", "Responsive UI, navigation, form state, protected routes, and feedback"),
-        ("Application/API", "Express routes, middleware, controllers, utilities", "Authentication, authorization, validation, workflow, response handling"),
-        ("Domain/Data", "Models, query builders, MySQL pool", "Persistence, search, aggregation, constraints, and transactions"),
-        ("Quality/Operations", "Node tests, Supertest, Postman, npm scripts", "Verification, reproducible setup, database lifecycle, and builds"),
-    ], [1.25, 2.7, 2.85])
-    doc.add_heading("4.3 Data Model and Integrity", level=2)
-    doc.add_heading("4.3.1 Core Entities", level=3)
-    add_table(doc, ["Entity", "Purpose", "Principal relationships"], [
-        ("User", "Identity, role, contact, account state", "Owns one student/tutor profile; participates throughout the system"),
-        ("StudentProfile / TutorProfile", "Role-specific profile and discovery attributes", "One-to-one with User"),
-        ("TutorPost", "Marketed tutoring service/course", "Tutor → many posts; referenced by bookings and engagement"),
-        ("StudentRequest", "Published learning demand", "Student → many requests; receives applications"),
-        ("Application", "Tutor proposal to a request", "Joins Tutor and StudentRequest"),
-        ("Booking", "Scheduled learning relationship", "Joins student, tutor, optional post/request"),
-        ("Message / Notification", "Communication and event awareness", "Associated with users and optionally bookings"),
-        ("Material / Assignment / Quiz", "Learning content and assessment", "Tutor-to-student learning relationship"),
-        ("Payment / Withdrawal", "Simulated financial ledger", "Payment belongs to booking; withdrawal belongs to tutor"),
-        ("Review / Verification / Report", "Trust, quality, and moderation", "Associated with users, bookings, and administrators"),
-        ("SavedTutor / SavedCourse / CourseView", "Discovery engagement", "Student-to-tutor/course interactions"),
-    ], [1.6, 2.4, 2.8])
-    doc.add_heading("4.3.2 Relationship Model", level=3)
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run(
-        "USER ──1:1── PROFILE\n"
-        "STUDENT ──1:N── REQUEST ──1:N── APPLICATION ──N:1── TUTOR\n"
-        "STUDENT ──1:N── BOOKING ──N:1── TUTOR\n"
-        "BOOKING ──1:0..1── PAYMENT   |   BOOKING ──1:N── REVIEW\n"
-        "TUTOR ──1:N── POST   |   TUTOR ↔ STUDENT: MESSAGE, MATERIAL, ASSIGNMENT, QUIZ"
-    )
-    apply_font(r, name=MONO_FONT, size=9.5)
-    shade_p = OxmlElement("w:shd")
-    shade_p.set(qn("w:fill"), PALE)
-    p._p.get_or_add_pPr().append(shade_p)
-    doc.add_heading("4.3.3 Data Integrity and Retention", level=3)
-    for item in [
-        "Foreign keys shall apply cascade, restrict, or set-null behavior appropriate to the historical value of each record.",
-        "Unique indexes shall protect email, duplicate applications, request-derived bookings, booking payments, reviews, quiz attempts, and saved relationships.",
-        "Status values shall use controlled enumerations. Monetary values shall use fixed-precision decimal types.",
-        "Operational records should be retained for the duration of the academic demonstration; a production deployment would require a formal retention and deletion policy.",
-    ]:
-        add_bullet(doc, item)
-
-    doc.add_heading("4.4 Key Use Cases", level=2)
-    use_cases = [
-        ("UC-01 Find and book a tutor", "Student", "Student is authenticated; tutor/service is active.", "Search/filter → open details → choose class type/time → check availability → create booking.", "Pending booking is stored without conflict."),
-        ("UC-02 Hire from a request", "Student, Tutor", "Student request is open.", "Tutor submits proposal → student reviews → accepts proposal → competing proposals are rejected → pending booking is created.", "Application is accepted and request is hired."),
-        ("UC-03 Complete learning work", "Tutor, Student", "Valid learning relationship exists.", "Tutor posts material/assignment/quiz → student views/submits/attempts → tutor grades assignment.", "Scores and progress become available."),
-        ("UC-04 Pay and view earnings", "Student, Tutor", "Booking exists and is payable.", "Student creates mock payment → marks it paid → commission is calculated → tutor views earnings.", "Ledger shows paid amount, commission, and net earning."),
-        ("UC-05 Verify a tutor", "Tutor, Admin", "Tutor is authenticated.", "Tutor submits evidence URLs → admin reviews → verifies or rejects with feedback.", "Verification status and badge eligibility are updated."),
-        ("UC-06 Moderate a report", "User, Admin", "User is authenticated.", "User submits report → admin filters/reviews → resolves or dismisses → optionally suspends user.", "Moderation status and action are recorded."),
-    ]
-    add_table(doc, ["Use case", "Actors", "Precondition", "Main flow", "Postcondition"], use_cases, [1.25, 0.8, 1.3, 2.25, 1.2])
-    doc.add_heading("4.4.1 Booking State Model", level=3)
-    doc.add_paragraph(
-        "A booking begins as pending. A tutor may confirm it and, after the scheduled class, mark it completed. Students and "
-        "tutors may cancel or reschedule active bookings within their permitted transitions; administrators may cancel active "
-        "bookings. Meeting details are tutor-controlled. The system shall reject terminal-state changes, premature completion, "
-        "role violations, and rescheduling that conflicts with either participant's active bookings."
-    )
-
-    doc.add_heading("5. Tentative Development Plan (Agile Methodology)", level=1)
-    doc.add_paragraph(
-        "The following eight-sprint plan mirrors the academic planning style of the reference document while mapping directly "
-        "to Mentor Market's modules. Each sprint should end with demonstrable, tested increments."
-    )
-    add_table(doc, ["Sprint", "Focus", "Principal deliverables"], [
-        ("1", "Foundation", "Repository structure, environment configuration, MySQL schema/seed, Express and React shells"),
-        ("2", "Identity and profiles", "Registration/login, JWT/RBAC, student and tutor profiles, protected layouts"),
-        ("3", "Marketplace discovery", "Tutor services, student requests, search/filter, public details, saved items"),
-        ("4", "Applications and bookings", "Proposals, decisions, availability, booking workflow, schedule conflict protection"),
-        ("5", "Communication and learning", "Messages, notifications, materials, assignments, submissions, grading"),
-        ("6", "Assessment and progress", "Quizzes, automatic scoring, course engagement, progress analytics"),
-        ("7", "Finance, trust, and admin", "Mock payments, commission, earnings, withdrawals, reviews, verification, reports, admin dashboard"),
-        ("8", "Hardening and delivery", "Responsive/accessibility pass, security review, automated tests, Postman, documentation, final demo"),
-    ], [0.7, 1.65, 4.45])
-    doc.add_heading("5.1 Definition of Done", level=2)
-    for item in [
-        "Acceptance behavior is implemented and demonstrated for permitted roles.",
-        "Validation, authorization, loading, empty, and error states are handled.",
-        "Database changes include safe, repeatable schema or migration updates.",
-        "Relevant automated tests pass and regressions are not introduced.",
-        "User-facing behavior and API usage are documented where necessary.",
-    ]:
-        add_bullet(doc, item)
-
-    doc.add_heading("6. Acceptance Criteria", level=1)
-    doc.add_heading("6.1 System Acceptance Criteria", level=2)
-    criteria = [
-        "The database schema and seed data initialize successfully on MySQL 8 or the documented compatible local MariaDB environment.",
-        "Student, tutor, and administrator users can authenticate and are restricted to their authorized routes and operations.",
-        "A student can discover a tutor, create a booking without schedule conflict, use the mock payment ledger, and submit a valid completed-booking review.",
-        "A tutor can publish a service, apply to a student request, manage teaching resources and assessments, and view calculated earnings.",
-        "An administrator can inspect analytics, moderate users and reports, decide tutor verification, and process withdrawal requests through protected backend operations.",
-        "Backend automated tests pass and the frontend production build completes without errors.",
-        "The main public and authenticated workflows remain usable on mobile and desktop layouts.",
-        "Finance and file-reference features are clearly identified as simulations or URL-based MVP behavior and do not imply real settlement or managed upload.",
-    ]
-    for criterion in criteria:
-        add_number(doc, criterion)
-
-    doc.add_heading("6.2 Requirement Traceability Matrix", level=2)
-    add_table(doc, ["Requirement group", "Primary implementation area", "Acceptance evidence"], [
-        ("FR-AUTH / FR-PROF", "authRoutes, userRoutes, student/tutor profiles, AuthContext", "Registration/login tests; protected route checks; profile update"),
-        ("FR-DISC", "tutor search query builder, discovery/course pages, engagement routes", "Filter/search results; saved/recent data; frontend build"),
-        ("FR-MKT", "post, request, and application routes/controllers", "CRUD role checks; application uniqueness and transactional status"),
-        ("FR-BOOK", "booking controller, availability utilities, bookings table", "Availability/conflict and transition tests"),
-        ("FR-MSG", "message and notification modules", "Persistent conversations, unread state, message flagging, and in-app notifications"),
-        ("FR-LEARN", "materials, assignment, quiz, and progress modules", "Create/submit/grade/attempt flows and score output"),
-        ("FR-FIN", "payment, earnings, withdrawal modules", "Payment route tests; server-side amount/commission calculation; admin decision"),
-        ("FR-TRUST / FR-SAFE", "reviews, verification, report, admin modules", "Rating constraints; decision permissions; suspension behavior"),
-        ("NFR-SEC / NFR-TEST", "middleware, tests, Postman, npm scripts", "Automated test pass; production build; HTTP/security review"),
-    ], [1.35, 3.0, 2.45])
-
-    doc.add_heading("7. Conclusion", level=1)
-    doc.add_paragraph(
-        "This SRS establishes a project-specific baseline for Mentor Market: a responsive three-role tutoring marketplace that "
-        "supports discovery, matching, bookings, communication, learning activities, simulated finance, trust, and administration. "
-        "Its requirements reflect the implemented React, Express, and MySQL system while clearly separating MVP simulations and "
-        "future integrations. Following the stated requirements, acceptance criteria, and sprint plan will support consistent "
-        "testing, evaluation, maintenance, and future development."
-    )
-
-    doc.add_heading("Appendix A — Out of Scope for the MVP", level=1)
-    for item in [
-        "Real payment gateway processing, bank settlement, chargebacks, and identity/KYC checks.",
-        "Managed binary file upload, transcoding, antivirus scanning, or content delivery storage.",
-        "Native iOS/Android applications, offline-first synchronization, or SMS/push delivery.",
-        "Live video classroom hosting, calendar provider synchronization, or automated attendance.",
-        "Automated credential verification against external institutions.",
-        "Production-scale recommendation machine learning; current recommendations are rule/data driven.",
-    ]:
-        add_bullet(doc, item)
-    appendix_b = doc.add_heading("Appendix B — Risks and Mitigations", level=1)
-    appendix_b.paragraph_format.page_break_before = True
-    add_table(doc, ["Risk", "Impact", "Mitigation"], [
-        ("Schedule race conditions", "Double-booked tutor", "Use availability checks, database constraints/transactions, and concurrency tests."),
-        ("Broken authorization", "Cross-role data exposure or mutation", "Enforce middleware and ownership checks on the server; test denied paths."),
-        ("Untrusted URLs/content", "Unsafe links or inappropriate media", "Validate URL shape, restrict schemes, sanitize display, and provide reporting/moderation."),
-        ("Mock payment confusion", "Users mistake demo ledger for real settlement", "Label all finance screens and records as simulated."),
-        ("Large catalog queries", "Slow discovery and high database load", "Use indexes, bounded pagination, debouncing, and query profiling."),
-        ("Incomplete tutor evidence", "Weak marketplace trust", "Expose verification status clearly and require manual admin review."),
-    ], [1.5, 1.9, 3.4])
-
-    props = doc.core_properties
-    props.title = "Mentor Market Software Requirements Specification"
-    props.subject = "Project-specific SRS for the Mentor Market EdTech tutoring marketplace"
-    props.author = "Mentor Market Project Team"
-    props.last_modified_by = "Mentor Market Project Team"
-    props.keywords = "Mentor Market, SRS, software requirements, EdTech, tutoring marketplace"
-    props.comments = "Generated from the implemented Mentor Market repository and the supplied academic SRS structure."
-    update_fields = OxmlElement("w:updateFields")
-    update_fields.set(qn("w:val"), "true")
-    doc.settings._element.append(update_fields)
+    add_toc(doc)
+    add_formal_srs(doc)
+    add_sprint_appendix(doc)
+    set_document_properties(doc)
     doc.save(OUTPUT)
     print(OUTPUT)
 

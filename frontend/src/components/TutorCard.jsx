@@ -29,7 +29,7 @@ export default function TutorCard({
       ? `${tutor.full_name} is saved`
       : `${isRemoveAction ? "Remove" : "Save"} ${tutor.full_name} ${isRemoveAction ? "from" : "to"} saved tutors`;
   return (
-    <article className={`tutor-card ${previewVideo && tutor.demo_video_url ? "has-video-preview" : ""}`}>
+    <article className={`tutor-card card-lift ${previewVideo && tutor.demo_video_url ? "has-video-preview" : ""}`}>
       <div className="tutor-card-media">
         <CourseArtwork subject={subjects[0] || "Learning"} />
         {tutor.avatar_url ? <img className="tutor-card-portrait" src={tutor.avatar_url} alt="" onError={(event) => { event.currentTarget.hidden = true; }} /> : null}

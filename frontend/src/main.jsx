@@ -14,6 +14,7 @@ import "./styles/course-artwork.css";
 import "./styles/discovery-plus.css";
 import "./styles/course-experience.css";
 import "./styles/live-class.css";
+import "./styles/component-polish.css";
 import App from "./App.jsx";
 import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";

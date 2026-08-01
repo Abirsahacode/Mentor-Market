@@ -1,10 +1,10 @@
 /* Text-free course covers. Metadata stays in HTML, so every crop remains intentional. */
 .course-artwork {
-  --art-bg: #d9f1e9;
-  --art-bg-deep: #91d9c6;
-  --art-ink: #0a5748;
-  --art-line: rgba(10, 87, 72, .18);
-  --art-pop: #236fe1;
+  --art-bg: var(--art-default-bg);
+  --art-bg-deep: var(--art-default-bg-deep);
+  --art-ink: var(--art-default-ink);
+  --art-line: var(--art-default-line);
+  --art-pop: var(--art-default-pop);
   position: relative;
   display: block;
   width: 100%;
@@ -13,16 +13,16 @@
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, .58), transparent 27%),
+    radial-gradient(circle at 18% 18%, var(--art-highlight), transparent 27%),
     linear-gradient(135deg, var(--art-bg) 0 52%, var(--art-bg-deep) 100%);
   color: var(--art-ink);
 }
-.course-artwork-math { --art-bg: #c9efe3; --art-bg-deep: #76ceb7; --art-ink: #064f42; --art-line: rgba(6, 79, 66, .18); --art-pop: #236fe1; }
-.course-artwork-physics { --art-bg: #dcecff; --art-bg-deep: #8dbbf2; --art-ink: #12375e; --art-line: rgba(18, 55, 94, .17); --art-pop: #f05f43; }
-.course-artwork-science { --art-bg: #f7e7ba; --art-bg-deep: #efb55e; --art-ink: #653d10; --art-line: rgba(101, 61, 16, .17); --art-pop: #0e9174; }
-.course-artwork-code { --art-bg: #202830; --art-bg-deep: #0d1115; --art-ink: #9be6d2; --art-line: rgba(155, 230, 210, .13); --art-pop: #c9f562; }
-.course-artwork-language { --art-bg: #f0e7dc; --art-bg-deep: #d5b9a2; --art-ink: #5a302a; --art-line: rgba(90, 48, 42, .16); --art-pop: #315bd6; }
-.course-artwork-studio { --art-bg: #e9e2f5; --art-bg-deep: #b8a6dc; --art-ink: #433568; --art-line: rgba(67, 53, 104, .16); --art-pop: #0e9878; }
+.course-artwork-math { --art-bg: var(--art-math-bg); --art-bg-deep: var(--art-math-bg-deep); --art-ink: var(--art-math-ink); --art-line: var(--art-math-line); --art-pop: var(--art-math-pop); }
+.course-artwork-physics { --art-bg: var(--art-physics-bg); --art-bg-deep: var(--art-physics-bg-deep); --art-ink: var(--art-physics-ink); --art-line: var(--art-physics-line); --art-pop: var(--art-physics-pop); }
+.course-artwork-science { --art-bg: var(--art-science-bg); --art-bg-deep: var(--art-science-bg-deep); --art-ink: var(--art-science-ink); --art-line: var(--art-science-line); --art-pop: var(--art-science-pop); }
+.course-artwork-code { --art-bg: var(--art-code-bg); --art-bg-deep: var(--art-code-bg-deep); --art-ink: var(--art-code-ink); --art-line: var(--art-code-line); --art-pop: var(--art-code-pop); }
+.course-artwork-language { --art-bg: var(--art-language-bg); --art-bg-deep: var(--art-language-bg-deep); --art-ink: var(--art-language-ink); --art-line: var(--art-language-line); --art-pop: var(--art-language-pop); }
+.course-artwork-studio { --art-bg: var(--art-studio-bg); --art-bg-deep: var(--art-studio-bg-deep); --art-ink: var(--art-studio-ink); --art-line: var(--art-studio-line); --art-pop: var(--art-studio-pop); }
 
 .course-artwork-grid {
   position: absolute;
@@ -30,7 +30,7 @@
   inset: 0;
   background-image: linear-gradient(var(--art-line) 1px, transparent 1px), linear-gradient(90deg, var(--art-line) 1px, transparent 1px);
   background-size: clamp(27px, 12%, 48px) clamp(27px, 12%, 48px);
-  mask-image: linear-gradient(135deg, #000, rgba(0, 0, 0, .65) 62%, transparent);
+  mask-image: linear-gradient(135deg, var(--mask-opaque), var(--mask-fade) 62%, transparent);
 }
 .course-artwork::before {
   position: absolute;
@@ -39,7 +39,7 @@
   aspect-ratio: 1;
   top: -18%;
   right: -7%;
-  border: clamp(12px, 3vw, 34px) solid rgba(255, 255, 255, .22);
+  border: clamp(12px, 3vw, 34px) solid var(--art-ring-line);
   border-radius: 50%;
   content: "";
 }
@@ -66,8 +66,8 @@
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--art-ink) 28%, transparent);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--art-bg) 76%, white 24%);
-  box-shadow: 0 16px 44px color-mix(in srgb, var(--art-ink) 15%, transparent), inset 0 0 0 7px rgba(255, 255, 255, .16);
+  background: color-mix(in srgb, var(--art-bg) 76%, var(--color-surface-raised) 24%);
+  box-shadow: 0 16px 44px color-mix(in srgb, var(--art-ink) 15%, transparent), inset 0 0 0 7px var(--art-inset-line);
   transform: translate(-50%, -50%);
 }
 .course-artwork-mark svg { width: 60%; height: 60%; overflow: visible; fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }

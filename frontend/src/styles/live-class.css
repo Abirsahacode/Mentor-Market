@@ -5,7 +5,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--accent, #2b8fff);
+  color: var(--color-action);
   font: inherit;
   font-size: var(--type-caption, .82rem);
   font-weight: 650;
@@ -15,7 +15,7 @@
 }
 
 .live-class-action:hover {
-  color: var(--primary-dark, #087f65);
+  color: var(--color-brand-hover);
 }
 
 .live-class-action-link span,
@@ -36,7 +36,7 @@
   aspect-ratio: 16 / 9;
   border: 0;
   border-radius: var(--radius-md, 14px);
-  background: #000;
+  background: var(--surface-media);
 }
 
 .live-class-fallback {
@@ -46,18 +46,18 @@
   place-items: center;
   gap: 12px;
   border-radius: var(--radius-md, 14px);
-  background: var(--soft, #f5f7fa);
+  background: var(--color-canvas);
   text-align: center;
 }
 
 .live-class-fallback p {
   margin: 0;
-  color: var(--muted, #656a72);
+  color: var(--color-muted);
 }
 
 .live-class-note {
   margin: 14px 0 0;
-  color: var(--muted, #656a72);
+  color: var(--color-muted);
   font-size: var(--type-caption, .82rem);
 }
 

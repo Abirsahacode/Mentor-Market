@@ -1,12 +1,12 @@
 import {
-  BadgeCheck, CalendarDays, ChevronDown, Filter, MapPin, RotateCcw, Search, SlidersHorizontal, X,
+  AlertCircle, BadgeCheck, CalendarDays, ChevronDown, Filter, MapPin, RotateCcw, Search, SlidersHorizontal, X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Alert from "../../components/Alert.jsx";
 import EmptyState from "../../components/EmptyState.jsx";
-import LoadingSpinner from "../../components/LoadingSpinner.jsx";
 import Pagination from "../../components/Pagination.jsx";
+import { SkeletonCard } from "../../components/Skeleton.jsx";
 import TutorCard from "../../components/TutorCard.jsx";
 import useApi from "../../hooks/useApi.js";
 import useDebouncedValue from "../../hooks/useDebouncedValue.js";
@@ -52,7 +52,7 @@ export default function FindTutorsPage() {
     sort,
   }).filter(([, value]) => value !== "")).toString(), [debouncedLocation, debouncedMaxPrice, debouncedMinPrice, debouncedQuery, filters, page, sort]);
 
-  const { data, meta, loading, error } = useApi(`/tutors?${query}`);
+  const { data, meta, loading, error, reload } = useApi(`/tutors?${query}`);
   const { data: subjectOptions } = useApi("/tutors/subjects", fallbackSubjects);
   const subjects = subjectOptions?.length ? subjectOptions : fallbackSubjects;
 
@@ -168,10 +168,30 @@ export default function FindTutorsPage() {
         {activeCount > 0 && <div className="active-filters" aria-label="Active filters">{Object.entries(filters).filter(([, value]) => value).map(([key, value]) => <button type="button" key={key} aria-label={`Remove ${key === "q" ? "search" : key.replace(/([A-Z])/g, " $1")} filter: ${value}`} onClick={() => updateParams({ [key]: "" })}><span>{key === "q" ? "Search" : key.replace(/([A-Z])/g, " $1")}</span>{value}<X size={12} /></button>)}</div>}
         <Alert>{error}</Alert>
         <div aria-live="polite" aria-busy={loading}>
-          {loading ? <LoadingSpinner label="Loading tutors" /> : results.length ? <>
+          {loading ? <SkeletonCard count={6} label="Loading tutors" /> : results.length ? <>
             <div className="card-grid tutor-grid">{results.map((tutor) => <TutorCard key={tutor.user_id} tutor={tutor} previewVideo />)}</div>
             <Pagination page={page} pages={pages} onChange={changePage} label="Mentor directory pages" />
-          </> : <EmptyState title="No matching mentors" text="Try removing one or two filters to open up the directory." />}
+          </> : error ? (
+            <EmptyState
+              icon={AlertCircle}
+              title="The mentor directory could not load"
+              description="Try again to restore the latest profiles and availability."
+              action={<button type="button" className="button button-ghost" onClick={reload}>Try again</button>}
+            />
+          ) : activeCount > 0 ? (
+            <EmptyState
+              icon={Search}
+              title="No matching mentors"
+              description="Try removing one or two filters to open up the directory."
+              action={<button type="button" className="button button-ghost" onClick={clear}>Reset filters</button>}
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="No mentors are available yet"
+              description="New mentor profiles will appear here as they join the marketplace."
+            />
+          )}
         </div>
       </div>
     </section>
