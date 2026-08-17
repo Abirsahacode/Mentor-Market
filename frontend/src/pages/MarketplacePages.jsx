@@ -1,4 +1,4 @@
-import { AlertCircle, BookMarked, CalendarDays, FileCheck2, Search, Star, UsersRound } from "lucide-react";
+import { AlertCircle, BookMarked, CalendarDays, FileCheck2, RefreshCw, Search, Star, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
@@ -11,6 +11,7 @@ import LiveClassAction from "../components/LiveClassAction.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequestCard from "../components/RequestCard.jsx";
 import ResourcePage from "../components/ResourcePage.jsx";
+import RescheduleModal from "../components/RescheduleModal.jsx";
 import { SkeletonCard, SkeletonTable } from "../components/Skeleton.jsx";
 import TutorCard from "../components/TutorCard.jsx";
 import useApi from "../hooks/useApi.js";
@@ -288,7 +289,10 @@ export function ApplicationsPage() {
 export function BookingsPage() {
   const { user } = useAuth();
   const { data, loading, error, reload } = useApi("/bookings");
+  const pendingReschedules = useApi("/bookings/reschedule-requests/my");
+  const [rescheduleBooking, setRescheduleBooking] = useState(null);
   const [bookingAction, setBookingAction] = useState({ id: null, status: "", message: "" });
+
   const update = async (id, nextStatus) => {
     if (nextStatus === "cancelled" && !window.confirm("Cancel this class? The other person will be notified.")) return;
     setBookingAction({ id, status: "pending", message: "" });
@@ -300,6 +304,20 @@ export function BookingsPage() {
       setBookingAction({ id, status: "error", message: getErrorMessage(requestError) });
     }
   };
+
+  const respondReschedule = async (requestId, status) => {
+    setBookingAction({ id: requestId, status: "pending", message: "" });
+    try {
+      await api.patch(`/bookings/reschedule-requests/${requestId}`, { status });
+      setBookingAction({ id: requestId, status: "success", message: `Reschedule request ${status}.` });
+      await Promise.all([reload(), pendingReschedules.reload()]);
+    } catch (requestError) {
+      setBookingAction({ id: requestId, status: "error", message: getErrorMessage(requestError) });
+    }
+  };
+
+  const pendingList = Array.isArray(pendingReschedules.data) ? pendingReschedules.data : [];
+
   const columns = [
     { key: user.role === "student" ? "tutor_name" : "student_name", label: user.role === "student" ? "Tutor" : "Student" },
     { key: "class_type", label: "Class type" }, { key: "class_date", label: "Date", render: (value) => new Date(value).toLocaleDateString() },
@@ -325,8 +343,10 @@ export function BookingsPage() {
   ];
   const actions = (row) => {
     const pending = bookingAction.id === row.id && bookingAction.status === "pending";
+    const pendingReq = pendingList.find((r) => r.booking_id === row.id && r.status === "pending");
+    const isActive = !["completed", "cancelled"].includes(row.status);
     return (
-      <>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", alignItems: "center" }}>
         {user.role === "tutor" && row.status === "pending" && (
           <button className="button button-tiny" type="button" disabled={pending} aria-busy={pending || undefined} onClick={() => update(row.id, "confirmed")}>
             {pending ? "Updating…" : "Confirm"}
@@ -345,18 +365,50 @@ export function BookingsPage() {
             title={`${row.class_type} class with ${user.role === "student" ? row.tutor_name : row.student_name}`}
           />
         )}
+        {isActive && pendingReq && (
+          <>
+            <button
+              className="button button-tiny"
+              type="button"
+              disabled={pending}
+              style={{ background: "#16a34a", color: "#ffffff" }}
+              onClick={() => respondReschedule(pendingReq.id, "accepted")}
+              title={`Accept reschedule to ${pendingReq.new_date} ${pendingReq.new_time?.slice(0, 5)}`}
+            >
+              Accept Reschedule ({pendingReq.new_date} {pendingReq.new_time?.slice(0, 5)})
+            </button>
+            <button
+              className="button button-tiny button-danger"
+              type="button"
+              disabled={pending}
+              onClick={() => respondReschedule(pendingReq.id, "rejected")}
+            >
+              Reject
+            </button>
+          </>
+        )}
+        {isActive && !pendingReq && (
+          <button
+            className="button button-tiny button-ghost"
+            type="button"
+            disabled={pending}
+            onClick={() => setRescheduleBooking(row)}
+          >
+            <RefreshCw size={13} /> Request Reschedule
+          </button>
+        )}
         {!["completed", "cancelled"].includes(row.status) && (
           <button className="button button-tiny button-danger" type="button" disabled={pending} onClick={() => update(row.id, "cancelled")}>
             Cancel
           </button>
         )}
-      </>
+      </div>
     );
   };
   const isStudent = user.role === "student";
   return (
     <section>
-      <PageHeader eyebrow="Class calendar" title="My bookings" description="Manage upcoming classes, confirmations, and the sessions already completed." />
+      <PageHeader eyebrow="Class calendar" title="My bookings" description="Manage upcoming classes, confirmations, and reschedule requests." />
       <Alert type={bookingAction.status === "success" ? "success" : "error"}>{bookingAction.message}</Alert>
       <Alert>{error}</Alert>
       {loading ? (
@@ -383,6 +435,17 @@ export function BookingsPage() {
               {isStudent ? "Browse tutors" : "Browse student requests"}
             </Link>
           )}
+        />
+      )}
+      {rescheduleBooking && (
+        <RescheduleModal
+          booking={rescheduleBooking}
+          onClose={() => setRescheduleBooking(null)}
+          onSuccess={(msg) => {
+            setBookingAction({ id: rescheduleBooking.id, status: "success", message: msg });
+            reload();
+            pendingReschedules.reload();
+          }}
         />
       )}
     </section>

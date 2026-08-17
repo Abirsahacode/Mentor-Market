@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createBooking, listAvailability, listBookings, updateBooking } from "../controllers/bookingController.js";
 import { cancelWaitlistEntry, getMentorWaitlist, getStudentWaitlist, joinWaitlist } from "../controllers/waitlistController.js";
+import { createRescheduleRequest, getBookingRescheduleRequests, getMyPendingRescheduleRequests, respondRescheduleRequest } from "../controllers/rescheduleController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { allowRoles } from "../middleware/roleMiddleware.js";
 import { validate } from "../middleware/validate.js";
@@ -16,4 +17,8 @@ router.post("/waitlist", allowRoles("student"), requiredFields("tutor_id", "clas
 router.get("/waitlist/mentor", allowRoles("tutor"), getMentorWaitlist);
 router.get("/waitlist/student", allowRoles("student"), getStudentWaitlist);
 router.delete("/waitlist/:id", cancelWaitlistEntry);
+router.post("/:id/reschedule-request", requiredFields("new_date", "new_time"), validate, createRescheduleRequest);
+router.patch("/reschedule-requests/:id", requiredFields("status"), validate, respondRescheduleRequest);
+router.get("/:id/reschedule-requests", getBookingRescheduleRequests);
+router.get("/reschedule-requests/my", getMyPendingRescheduleRequests);
 export default router;

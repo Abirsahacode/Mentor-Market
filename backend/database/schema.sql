@@ -3,7 +3,7 @@ USE mentor_market;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS course_views, saved_courses, saved_tutors, withdrawal_requests, reports, notifications, study_materials,
-  quiz_attempts, quizzes, assignments, payments, verifications, reviews, messages, booking_waitlists, bookings,
+  quiz_attempts, quizzes, assignments, payments, verifications, reviews, messages, reschedule_requests, booking_waitlists, bookings,
   applications, student_requests, tutor_posts, tutor_availabilities, tutor_profiles, student_profiles, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -167,6 +167,24 @@ CREATE TABLE booking_waitlists (
   CONSTRAINT uq_waitlists_student_slot UNIQUE (student_id, tutor_id, class_date, class_time),
   INDEX idx_waitlists_tutor_status (tutor_id, status),
   INDEX idx_waitlists_student (student_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE reschedule_requests (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  booking_id BIGINT UNSIGNED NOT NULL,
+  requested_by_id BIGINT UNSIGNED NOT NULL,
+  requested_to_id BIGINT UNSIGNED NOT NULL,
+  new_date DATE NOT NULL,
+  new_time TIME NOT NULL,
+  reason TEXT,
+  status ENUM('pending', 'accepted', 'rejected') NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_reschedules_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reschedules_requested_by FOREIGN KEY (requested_by_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reschedules_requested_to FOREIGN KEY (requested_to_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_reschedules_booking (booking_id),
+  INDEX idx_reschedules_recipient_status (requested_to_id, status)
 ) ENGINE=InnoDB;
 
 CREATE TABLE messages (
