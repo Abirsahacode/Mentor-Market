@@ -122,13 +122,49 @@ export const listAvailability = asyncHandler(async (req, res) => {
   if (!tutor) throw new ApiError(404, "tutor_not_found", "An active tutor was not found");
 
   const [existingBookings] = await db.query(
-    `SELECT class_date, class_time FROM bookings
+    `SELECT class_date, DATE_FORMAT(class_time, '%H:%i') AS class_time FROM bookings
      WHERE tutor_id = ? AND class_date BETWEEN ? AND ? AND status IN ('pending', 'confirmed', 'rescheduled')`,
     [tutorId, fromDate, toDate],
   );
 
-  const availabilityText = tutor.availability || "";
-  const slots = generateAvailabilitySlots({ availabilityText, fromDate, toDate, existingBookings });
+  const [explicitSlots] = await db.query(
+    `SELECT id, date, DATE_FORMAT(start_time, '%H:%i') AS start_time, DATE_FORMAT(end_time, '%H:%i') AS end_time
+     FROM tutor_availabilities
+     WHERE tutor_id = ? AND date BETWEEN ? AND ?
+     ORDER BY date ASC, start_time ASC`,
+    [tutorId, fromDate, toDate],
+  );
+
+  let slots = [];
+  const bookedSet = new Set(
+    existingBookings.map((b) => `${normalizeDateOnly(b.class_date)}:${b.class_time}`),
+  );
+
+  if (explicitSlots.length > 0) {
+    slots = explicitSlots.map((slot) => {
+      const dateKey = normalizeDateOnly(slot.date);
+      const timeKey = slot.start_time;
+      const isBooked = bookedSet.has(`${dateKey}:${timeKey}`);
+      return {
+        id: slot.id,
+        date: dateKey,
+        time: timeKey,
+        end_time: slot.end_time,
+        label: `${dateKey} · ${timeKey}`,
+        is_booked: isBooked,
+        status: isBooked ? "booked" : "available",
+      };
+    });
+  } else {
+    const availabilityText = tutor.availability || "";
+    const generated = generateAvailabilitySlots({ availabilityText, fromDate, toDate, existingBookings });
+    slots = generated.map((slot) => ({
+      ...slot,
+      is_booked: false,
+      status: "available",
+    }));
+  }
+
   sendSuccess(res, slots, "Availability loaded");
 });
 
@@ -167,17 +203,34 @@ export const createBooking = asyncHandler(async (req, res) => {
     throw new ApiError(422, "unsupported_mode", `This class is available ${supportedMode} only`);
   }
 
-  // Course availability copy is descriptive. The tutor profile owns the
-  // calendar used by both the availability endpoint and booking validation.
   const availabilityText = tutor.availability || "";
   const [existingBookings] = await db.query(
-    `SELECT class_date, class_time FROM bookings
+    `SELECT class_date, DATE_FORMAT(class_time, '%H:%i') AS class_time FROM bookings
      WHERE tutor_id = ? AND class_date = ? AND status IN ('pending', 'confirmed', 'rescheduled')`,
     [tutorId, req.body.class_date],
   );
   const normalizedTime = req.body.class_time?.slice(0, 5);
-  const availabilitySlots = generateAvailabilitySlots({ availabilityText, fromDate: req.body.class_date, toDate: req.body.class_date, existingBookings });
-  const slotIsAvailable = availabilitySlots.some((slot) => slot.date === req.body.class_date && slot.time === normalizedTime);
+
+  const [explicitSlots] = await db.query(
+    `SELECT id, date, DATE_FORMAT(start_time, '%H:%i') AS start_time FROM tutor_availabilities
+     WHERE tutor_id = ? AND date = ?`,
+    [tutorId, req.body.class_date],
+  );
+
+  let slotIsAvailable = false;
+  if (explicitSlots.length > 0) {
+    const matchingSlot = explicitSlots.find((slot) => slot.start_time === normalizedTime);
+    if (matchingSlot) {
+      const isBooked = existingBookings.some(
+        (b) => normalizeDateOnly(b.class_date) === req.body.class_date && b.class_time === normalizedTime,
+      );
+      if (!isBooked) slotIsAvailable = true;
+    }
+  } else {
+    const availabilitySlots = generateAvailabilitySlots({ availabilityText, fromDate: req.body.class_date, toDate: req.body.class_date, existingBookings });
+    slotIsAvailable = availabilitySlots.some((slot) => slot.date === req.body.class_date && slot.time === normalizedTime);
+  }
+
   if (!slotIsAvailable) {
     throw new ApiError(422, "slot_unavailable", "Choose one of the tutor's available calendar slots");
   }

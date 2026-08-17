@@ -4,7 +4,7 @@ USE mentor_market;
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS course_views, saved_courses, saved_tutors, withdrawal_requests, reports, notifications, study_materials,
   quiz_attempts, quizzes, assignments, payments, verifications, reviews, messages, bookings,
-  applications, student_requests, tutor_posts, tutor_profiles, student_profiles, users;
+  applications, student_requests, tutor_posts, tutor_availabilities, tutor_profiles, student_profiles, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -56,6 +56,19 @@ CREATE TABLE tutor_profiles (
   INDEX idx_tutor_profiles_search (teaching_mode, location, hourly_rate, average_rating),
   INDEX idx_tutor_profiles_recommended (profile_completion, is_verified, average_rating),
   FULLTEXT INDEX ft_tutor_profiles_bio (qualifications, bio)
+) ENGINE=InnoDB;
+
+CREATE TABLE tutor_availabilities (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tutor_id BIGINT UNSIGNED NOT NULL,
+  date DATE NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_tutor_availabilities_tutor FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT uq_tutor_availability_slot UNIQUE (tutor_id, date, start_time),
+  INDEX idx_tutor_availabilities_tutor_date (tutor_id, date)
 ) ENGINE=InnoDB;
 
 CREATE TABLE tutor_posts (

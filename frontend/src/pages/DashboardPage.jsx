@@ -12,6 +12,7 @@ import StatCard from "../components/StatCard.jsx";
 import UserAvatar from "../components/UserAvatar.jsx";
 import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
+import TutorAvailabilityManager from "../components/TutorAvailabilityManager.jsx";
 import { firstDisplayName } from "../utils/formatters.js";
 import { isLiveClassUrl } from "../utils/liveClass.js";
 
@@ -325,6 +326,12 @@ function UserDashboard({ role, displayName }) {
           <Link to={`/${role}/${isStudent ? "assignments" : "materials"}`}><BookOpenCheck size={17} /><span><strong>{isStudent ? "Assignments" : "Study materials"}</strong><small>{isStudent ? "View due work" : "Share a resource"}</small></span><ArrowRight size={15} /></Link>
         </article>
       </div>
+
+      {role === "tutor" && (
+        <div style={{ marginTop: "2rem" }}>
+          <TutorAvailabilityManager />
+        </div>
+      )}
     </>
   );
 }

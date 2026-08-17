@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getEarnings, getProfile, getTutor, listTutorSubjects, requestWithdrawal, searchTutors, updateProfile } from "../controllers/tutorController.js";
+import { createAvailability, deleteAvailability, getMentorAvailability } from "../controllers/tutorAvailabilityController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { allowRoles } from "../middleware/roleMiddleware.js";
 import { validate } from "../middleware/validate.js";
@@ -12,5 +13,8 @@ router.get("/profile", protect, allowRoles("tutor"), getProfile);
 router.put("/profile", protect, allowRoles("tutor"), tutorProfileRules, validate, updateProfile);
 router.get("/earnings", protect, allowRoles("tutor"), getEarnings);
 router.post("/withdrawals", protect, allowRoles("tutor"), requestWithdrawal);
+router.get("/availability/my", protect, allowRoles("tutor"), getMentorAvailability);
+router.post("/availability", protect, allowRoles("tutor"), createAvailability);
+router.delete("/availability/:id", protect, allowRoles("tutor"), deleteAvailability);
 router.get("/:id", getTutor);
 export default router;
