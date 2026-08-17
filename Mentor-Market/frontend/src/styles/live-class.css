@@ -1,0 +1,67 @@
+.live-class-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-action);
+  font: inherit;
+  font-size: var(--type-caption, .82rem);
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.live-class-action:hover {
+  color: var(--color-brand-hover);
+}
+
+.live-class-action-link span,
+.live-class-action-button span {
+  white-space: nowrap;
+}
+
+.live-class-action-button {
+  text-decoration: none;
+}
+
+.live-class-modal .live-class-dialog {
+  width: min(920px, calc(100vw - 32px));
+}
+
+.live-class-embed {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--radius-md, 14px);
+  background: var(--surface-media);
+}
+
+.live-class-fallback {
+  display: grid;
+  min-height: 220px;
+  padding: 28px;
+  place-items: center;
+  gap: 12px;
+  border-radius: var(--radius-md, 14px);
+  background: var(--color-canvas);
+  text-align: center;
+}
+
+.live-class-fallback p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.live-class-note {
+  margin: 14px 0 0;
+  color: var(--color-muted);
+  font-size: var(--type-caption, .82rem);
+}
+
+.activity-row .live-class-action {
+  margin-top: 6px;
+  font-size: .72rem;
+}

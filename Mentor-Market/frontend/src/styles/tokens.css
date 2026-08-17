@@ -1,0 +1,263 @@
+/*
+ * Learning Atelier
+ * Shared semantic tokens for public, student, tutor, and admin experiences.
+ * Page styles should consume these values instead of introducing new literals.
+ */
+
+:root {
+  color-scheme: light;
+
+  --font-ui: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --color-ink: #17231f;
+  --color-ink-soft: #3f4c47;
+  --color-canvas: #f6f2e9;
+  --color-surface: #fffcf7;
+  --color-surface-raised: #ffffff;
+  --color-brand: #126b57;
+  --color-brand-hover: #0b5546;
+  --color-brand-soft: #e5f1ec;
+  --color-action: #3559c7;
+  --color-action-hover: #2948a9;
+  --color-action-soft: #e9edfb;
+  --color-clay: #b9573c;
+  --color-clay-soft: #f7e7e1;
+  --color-muted: #5d6964;
+  --color-line: #d8d1c5;
+  --color-line-strong: #89948e;
+  --color-danger: #a33d35;
+  --color-danger-soft: #f9e7e4;
+  --color-warning: #7a5614;
+  --color-warning-soft: #fbf0d4;
+  --color-success: #126b57;
+  --color-success-soft: #e5f1ec;
+  --color-rating: #8a5b00;
+  --color-rating-on-strong: #f7dc76;
+  --color-on-strong: #ffffff;
+  --color-on-strong-muted: rgba(255, 255, 255, 0.7);
+  --color-on-strong-subtle: rgba(255, 255, 255, 0.52);
+  --color-brand-bright: #70dfbe;
+  --color-brand-vivid: #10a37f;
+  --color-brand-vivid-hover: #087f65;
+  --color-brand-vivid-soft: #e5f1ed;
+  --color-action-bright: #2b8fff;
+  --color-action-bright-soft: #e4f0ff;
+  --color-on-inverse: #f7f8fa;
+  --color-on-inverse-soft: #c6cad0;
+  --color-on-inverse-muted: #8f959f;
+  --color-accent-amber: #9a7138;
+  --color-accent-amber-soft: #f4ecdf;
+  --color-accent-plum: #77688f;
+  --color-accent-plum-soft: #eeeaf2;
+  --color-success-on-strong: #bceadd;
+  --color-info: #2948a9;
+  --color-info-soft: #e9edfb;
+  --color-disabled: #68736e;
+  --color-disabled-soft: #eceeeb;
+
+  --surface-subject-icon: #d7fbf4;
+  --surface-skeleton: #e6e2da;
+  --surface-skeleton-highlight: #fffdf9;
+  --surface-table-header: #f2eee6;
+  --surface-table-hover: #edf6f2;
+  --surface-table-stripe: #f8f5ef;
+  --surface-dialog-backdrop: rgba(23, 35, 31, 0.68);
+  --surface-preview: #edf0f1;
+  --surface-media: #17191d;
+  --surface-inverse-raised: #30363a;
+  --surface-on-strong-soft: rgba(255, 255, 255, 0.1);
+  --surface-media-chip: rgba(14, 15, 18, 0.62);
+  --surface-media-overlay: rgba(14, 15, 18, 0.84);
+  --surface-inverse: #14231f;
+  --surface-inverse-deep: #0d1212;
+  --surface-inverse-hover: rgba(255, 255, 255, 0.055);
+  --surface-inverse-footer: rgba(10, 11, 14, 0.35);
+  --surface-glass-soft: rgba(255, 255, 255, 0.76);
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-glass-strong: rgba(255, 255, 255, 0.94);
+  --surface-warm-glass: rgba(255, 253, 249, 0.72);
+  --surface-warm-glass-strong: rgba(255, 253, 249, 0.94);
+  --surface-topbar-glass: rgba(250, 248, 243, 0.9);
+  --surface-topbar-glass-strong: rgba(250, 248, 243, 0.95);
+  --surface-sidebar-scrim: rgba(14, 15, 18, 0.52);
+
+  --line-danger: #d9a79f;
+  --line-warning: #d8be83;
+  --line-success: #9bcabb;
+  --line-info: #afc1ea;
+  --line-card-hover: #9bcabb;
+  --line-on-strong: rgba(255, 255, 255, 0.32);
+  --line-on-strong-subtle: rgba(255, 255, 255, 0.22);
+  --line-action-decorative: rgba(53, 89, 199, 0.22);
+  --line-on-inverse-faint: rgba(255, 255, 255, 0.08);
+  --overlay-media-soft: rgba(5, 6, 7, 0.3);
+  --overlay-media-strong: rgba(5, 6, 7, 0.78);
+  --mask-opaque: #000000;
+  --mask-fade: rgba(0, 0, 0, 0.65);
+
+  /* Authenticated workspace role palettes. */
+  --role-student-accent: var(--color-brand);
+  --role-student-deep: var(--color-brand-hover);
+  --role-student-soft: var(--color-brand-soft);
+  --role-student-wash: rgba(18, 107, 87, 0.1);
+  --role-student-line: rgba(18, 107, 87, 0.22);
+  --role-student-rgb: 18, 107, 87;
+  --role-tutor-accent: #477b78;
+  --role-tutor-deep: #315f5d;
+  --role-tutor-soft: #e6f0ef;
+  --role-tutor-wash: rgba(71, 123, 120, 0.1);
+  --role-tutor-line: rgba(71, 123, 120, 0.22);
+  --role-tutor-rgb: 71, 123, 120;
+  --role-admin-accent: #8a693f;
+  --role-admin-deep: #6f522f;
+  --role-admin-soft: #f2eadf;
+  --role-admin-wash: rgba(138, 105, 63, 0.1);
+  --role-admin-line: rgba(138, 105, 63, 0.22);
+  --role-admin-rgb: 138, 105, 63;
+
+  /* Course experience palette. Kept exact to preserve its cinematic identity. */
+  --course-ink: #0e0f12;
+  --course-ink-soft: #202226;
+  --course-paper: #f3f0e8;
+  --course-surface: #fbfaf7;
+  --course-line: #d7d3ca;
+  --course-muted: #6d6c68;
+  --course-brand: #10a37f;
+  --course-brand-hover: #087f65;
+  --course-brand-soft: #d9f1e9;
+  --course-action: #2b8fff;
+  --course-action-soft: #e4f0ff;
+  --course-signal: #ee6b4d;
+  --course-focus-color: rgba(16, 163, 127, 0.27);
+  --course-focus-ring: 0 0 0 3px rgba(16, 163, 127, 0.12);
+  --course-signal-ring: rgba(238, 107, 77, 0.16);
+  --course-surface-glass: rgba(251, 250, 247, 0.96);
+  --course-surface-translucent: rgba(251, 250, 247, 0.5);
+  --course-surface-hover: rgba(251, 250, 247, 0.7);
+  --course-nav-glass: rgba(243, 240, 232, 0.91);
+  --course-nav-line: rgba(215, 211, 202, 0.92);
+  --course-line-brand: #a6d8ca;
+  --course-line-inverse: #2f3237;
+
+  /* Text-free course artwork themes. Each tuple is intentionally bespoke. */
+  --art-default-bg: #d9f1e9;
+  --art-default-bg-deep: #91d9c6;
+  --art-default-ink: #0a5748;
+  --art-default-line: rgba(10, 87, 72, 0.18);
+  --art-default-pop: #236fe1;
+  --art-math-bg: #c9efe3;
+  --art-math-bg-deep: #76ceb7;
+  --art-math-ink: #064f42;
+  --art-math-line: rgba(6, 79, 66, 0.18);
+  --art-math-pop: #236fe1;
+  --art-physics-bg: #dcecff;
+  --art-physics-bg-deep: #8dbbf2;
+  --art-physics-ink: #12375e;
+  --art-physics-line: rgba(18, 55, 94, 0.17);
+  --art-physics-pop: #f05f43;
+  --art-science-bg: #f7e7ba;
+  --art-science-bg-deep: #efb55e;
+  --art-science-ink: #653d10;
+  --art-science-line: rgba(101, 61, 16, 0.17);
+  --art-science-pop: #0e9174;
+  --art-code-bg: #202830;
+  --art-code-bg-deep: #0d1115;
+  --art-code-ink: #9be6d2;
+  --art-code-line: rgba(155, 230, 210, 0.13);
+  --art-code-pop: #c9f562;
+  --art-language-bg: #f0e7dc;
+  --art-language-bg-deep: #d5b9a2;
+  --art-language-ink: #5a302a;
+  --art-language-line: rgba(90, 48, 42, 0.16);
+  --art-language-pop: #315bd6;
+  --art-studio-bg: #e9e2f5;
+  --art-studio-bg-deep: #b8a6dc;
+  --art-studio-ink: #433568;
+  --art-studio-line: rgba(67, 53, 104, 0.16);
+  --art-studio-pop: #0e9878;
+  --art-highlight: rgba(255, 255, 255, 0.58);
+  --art-ring-line: rgba(255, 255, 255, 0.22);
+  --art-inset-line: rgba(255, 255, 255, 0.16);
+
+  --brand-rgb: 18, 107, 87;
+  --action-rgb: 53, 89, 199;
+  --clay-rgb: 185, 87, 60;
+  --ink-rgb: 23, 35, 31;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  --radius-xs: 6px;
+  --radius-control: 11px;
+  --radius-card: 18px;
+  --radius-feature: 28px;
+  --radius-round: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(var(--ink-rgb), 0.05);
+  --shadow-sm: 0 10px 28px rgba(var(--ink-rgb), 0.07);
+  --shadow-md: 0 22px 54px rgba(var(--ink-rgb), 0.1);
+  --shadow-lg: 0 34px 90px rgba(var(--ink-rgb), 0.14);
+  --shadow-card-hover: 0 18px 42px rgba(var(--ink-rgb), 0.11);
+  --shadow-media: 0 26px 65px rgba(14, 15, 18, 0.19);
+  --shadow-course-card: 9px 9px 0 #d8e8e3;
+  --shadow-course-card-compact: 7px 7px 0 #d8e8e3;
+  --shadow-control-inset: inset 0 -1px 0 #ced2d8;
+  --shadow-sidebar-mobile: 20px 0 55px rgba(34, 39, 36, 0.16);
+
+  --content-reading: 44rem;
+  --content-default: 76rem;
+  --content-wide: 90rem;
+  --page-gutter: clamp(1rem, 3vw, 3rem);
+
+  --type-micro: 0.75rem;
+  --type-caption: clamp(0.8125rem, 0.79rem + 0.08vw, 0.875rem);
+  --type-small: clamp(0.875rem, 0.84rem + 0.1vw, 0.9375rem);
+  --type-body: clamp(1rem, 0.97rem + 0.1vw, 1.0625rem);
+  --type-card-title: clamp(1.125rem, 1.07rem + 0.18vw, 1.25rem);
+  --type-section: clamp(2rem, 1.65rem + 1.25vw, 3.25rem);
+  --type-display: clamp(3rem, 2.15rem + 3.6vw, 5.75rem);
+
+  --duration-fast: 140ms;
+  --duration-base: 220ms;
+  --duration-slow: 360ms;
+  --duration-dialog: 150ms;
+  --duration-skeleton: 1400ms;
+  --ease-standard: cubic-bezier(0.2, 0.75, 0.25, 1);
+  --focus-ring: 0 0 0 3px rgba(var(--action-rgb), 0.24);
+  --focus-ring-field: 0 0 0 2px rgba(var(--brand-rgb), 0.32);
+  --control-height: 2.75rem;
+  --table-scroll-height: min(70vh, 52rem);
+  --skeleton-card-min: 17rem;
+  --skeleton-media-height: 12rem;
+  --skeleton-stat-height: 7rem;
+  --brand-mark-line: #ffffff;
+  --brand-mark-accent: var(--color-clay);
+
+  /* Compatibility aliases for existing screens during the visual migration. */
+  --primary: var(--color-brand);
+  --primary-dark: var(--color-brand-hover);
+  --primary-soft: var(--color-brand-soft);
+  --accent: var(--color-action);
+  --ink: var(--color-ink);
+  --black: var(--color-ink);
+  --muted: var(--color-muted);
+  --border: var(--color-line);
+  --surface: var(--color-surface);
+  --soft: var(--color-canvas);
+  --paper: var(--color-canvas);
+  --warm: var(--color-canvas);
+  --danger: var(--color-danger);
+  --shadow: var(--shadow-sm);
+}

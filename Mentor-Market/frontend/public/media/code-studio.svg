@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 405" role="img" aria-labelledby="title desc">
+  <title id="title">Programming lesson thumbnail</title><desc id="desc">A dark programming lesson poster with a terminal window.</desc>
+  <rect width="720" height="405" fill="#0e0f12"/>
+  <rect x="34" y="32" width="652" height="335" fill="none" stroke="#5d5d56" stroke-width="2"/>
+  <circle cx="59" cy="57" r="7" fill="#40434a"/><circle cx="81" cy="57" r="7" fill="#10a37f"/><circle cx="103" cy="57" r="7" fill="#2b8fff"/>
+  <text x="55" y="145" font-family="monospace" font-size="54" font-weight="700" fill="white">Learn by building.</text>
+  <text x="57" y="198" font-family="monospace" font-size="22" fill="#7ee2c3">&gt; python · html · javascript_</text>
+  <path d="M57 241h446M57 271h356M57 301h410" stroke="#565650" stroke-width="7"/>
+  <rect x="552" y="231" width="93" height="93" fill="#10a37f"/><path d="M579 259l-20 19 20 19M618 259l20 19-20 19" fill="none" stroke="white" stroke-width="7"/>
+  <text x="55" y="348" font-family="Arial,sans-serif" font-size="17" font-weight="700" fill="#d9ebff">MENTOR MARKET / SADIA ISLAM</text>
+</svg>
