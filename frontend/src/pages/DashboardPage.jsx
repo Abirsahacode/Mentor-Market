@@ -13,6 +13,7 @@ import UserAvatar from "../components/UserAvatar.jsx";
 import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
 import TutorAvailabilityManager from "../components/TutorAvailabilityManager.jsx";
+import MentorWaitlistManager from "../components/MentorWaitlistManager.jsx";
 import { firstDisplayName } from "../utils/formatters.js";
 import { isLiveClassUrl } from "../utils/liveClass.js";
 
@@ -328,7 +329,8 @@ function UserDashboard({ role, displayName }) {
       </div>
 
       {role === "tutor" && (
-        <div style={{ marginTop: "2rem" }}>
+        <div style={{ marginTop: "2rem", display: "flex", flexDirection: "column", gap: "2rem" }}>
+          <MentorWaitlistManager />
           <TutorAvailabilityManager />
         </div>
       )}

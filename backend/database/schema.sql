@@ -3,7 +3,7 @@ USE mentor_market;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS course_views, saved_courses, saved_tutors, withdrawal_requests, reports, notifications, study_materials,
-  quiz_attempts, quizzes, assignments, payments, verifications, reviews, messages, bookings,
+  quiz_attempts, quizzes, assignments, payments, verifications, reviews, messages, booking_waitlists, bookings,
   applications, student_requests, tutor_posts, tutor_availabilities, tutor_profiles, student_profiles, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -151,6 +151,22 @@ CREATE TABLE bookings (
   UNIQUE INDEX uq_bookings_student_request (student_request_id),
   INDEX idx_bookings_student_date (student_id, class_date),
   INDEX idx_bookings_tutor_date (tutor_id, class_date)
+) ENGINE=InnoDB;
+
+CREATE TABLE booking_waitlists (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  student_id BIGINT UNSIGNED NOT NULL,
+  tutor_id BIGINT UNSIGNED NOT NULL,
+  class_date DATE NOT NULL,
+  class_time TIME NOT NULL,
+  status ENUM('waiting', 'notified', 'cancelled', 'fulfilled') NOT NULL DEFAULT 'waiting',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_waitlists_students FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_waitlists_tutors FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT uq_waitlists_student_slot UNIQUE (student_id, tutor_id, class_date, class_time),
+  INDEX idx_waitlists_tutor_status (tutor_id, status),
+  INDEX idx_waitlists_student (student_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE messages (
