@@ -1,3 +1,5 @@
+USE mentor_market;
+
 CREATE TABLE IF NOT EXISTS booking_waitlists (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   student_id BIGINT UNSIGNED NOT NULL,

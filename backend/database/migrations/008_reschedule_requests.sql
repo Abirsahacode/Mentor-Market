@@ -1,3 +1,5 @@
+USE mentor_market;
+
 CREATE TABLE IF NOT EXISTS reschedule_requests (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   booking_id BIGINT UNSIGNED NOT NULL,
