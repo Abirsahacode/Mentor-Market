@@ -1,3 +1,4 @@
+USE mentor_market;
 CREATE TABLE IF NOT EXISTS tutor_availabilities (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   tutor_id BIGINT UNSIGNED NOT NULL,
