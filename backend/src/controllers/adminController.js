@@ -1,12 +1,22 @@
 import db from "../config/db.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { logModeration } from "../utils/moderationLog.js";
+import { notify } from "../utils/notifications.js";
 import { getPagination } from "../utils/pagination.js";
 import { sendSuccess } from "../utils/respond.js";
 
 const manageableTables = new Set([
-  "tutor_posts", "student_requests", "applications", "bookings", "payments", "reviews", "reports", "withdrawal_requests",
+  "tutor_posts", "student_requests", "applications", "bookings", "payments", "reviews", "reports", "withdrawal_requests", "contact_messages",
 ]);
+const searchableColumns = {
+  tutor_posts: ["title", "subject", "description"],
+  student_requests: ["subject", "description"],
+  applications: ["proposal_message"],
+  reviews: ["comment"],
+  reports: ["description"],
+  contact_messages: ["name", "email", "subject", "message"],
+};
 
 export const dashboard = asyncHandler(async (_req, res) => {
   const [[users]] = await db.query(
@@ -28,7 +38,16 @@ export const dashboard = asyncHandler(async (_req, res) => {
        UNION ALL SELECT subject, COUNT(*) AS total FROM student_requests GROUP BY subject
      ) subjects GROUP BY subject ORDER BY total DESC LIMIT 5`,
   );
-  sendSuccess(res, { ...users, ...counts, popular_subjects: popularSubjects }, "Admin analytics loaded");
+  const [weeklyTrend] = await db.query(
+    `SELECT DATE_FORMAT(b.week_start, '%Y-%m-%d') AS week, COUNT(*) AS bookings, COALESCE(SUM(p.commission), 0) AS revenue
+     FROM (
+       SELECT id, DATE_SUB(class_date, INTERVAL WEEKDAY(class_date) DAY) AS week_start
+       FROM bookings WHERE class_date >= DATE_SUB(CURRENT_DATE, INTERVAL 8 WEEK)
+     ) b
+     LEFT JOIN payments p ON p.booking_id = b.id AND p.status = 'paid'
+     GROUP BY week ORDER BY week ASC`,
+  );
+  sendSuccess(res, { ...users, ...counts, popular_subjects: popularSubjects, weekly_trend: weeklyTrend }, "Admin analytics loaded");
 });
 
 export const listUsers = asyncHandler(async (req, res) => {
@@ -54,14 +73,42 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
   await db.query("UPDATE users SET is_active = ? WHERE id = ?", [req.body.is_active, req.params.id]);
   const [[user]] = await db.query("SELECT id, full_name, email, role, is_active FROM users WHERE id = ?", [req.params.id]);
   if (!user) throw new ApiError(404, "user_not_found", "User was not found");
+  await logModeration(req.user.id, req.body.is_active ? "activate_user" : "suspend_user", "user", user.id, req.body.reason);
+  await notify(
+    user.id,
+    req.body.is_active ? "Account reactivated" : "Account suspended",
+    req.body.reason || (req.body.is_active ? "Your account access has been restored." : "Your account was suspended by an administrator."),
+    req.body.is_active ? "account_activated" : "account_suspended",
+  );
   sendSuccess(res, user, user.is_active ? "User activated" : "User suspended");
+});
+
+export const listModerationLogs = asyncHandler(async (req, res) => {
+  const { page, limit, offset } = getPagination(req.query);
+  const [rows] = await db.query(
+    `SELECT ml.*, u.full_name AS admin_name FROM moderation_logs ml
+     JOIN users u ON u.id = ml.admin_id ORDER BY ml.created_at DESC LIMIT ? OFFSET ?`, [limit, offset],
+  );
+  const [[{ total }]] = await db.query("SELECT COUNT(*) AS total FROM moderation_logs");
+  sendSuccess(res, rows, "Moderation activity loaded", 200, { page, limit, total, pages: Math.ceil(total / limit) });
 });
 
 export const listResource = asyncHandler(async (req, res) => {
   const table = req.params.resource;
   if (!manageableTables.has(table)) throw new ApiError(404, "resource_not_found", "Admin resource was not found");
-  const [rows] = await db.query(`SELECT * FROM \`${table}\` ORDER BY created_at DESC LIMIT 200`);
-  sendSuccess(res, rows, `${table.replaceAll("_", " ")} loaded`);
+  const { page, limit, offset } = getPagination(req.query);
+  const clauses = [];
+  const values = [];
+  const columns = searchableColumns[table];
+  if (req.query.q && columns) {
+    clauses.push(`(${columns.map((column) => `\`${column}\` LIKE ?`).join(" OR ")})`);
+    columns.forEach(() => values.push(`%${req.query.q}%`));
+  }
+  if (req.query.status) { clauses.push("status = ?"); values.push(req.query.status); }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  const [rows] = await db.query(`SELECT * FROM \`${table}\` ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
+  const [[{ total }]] = await db.query(`SELECT COUNT(*) AS total FROM \`${table}\` ${where}`, values);
+  sendSuccess(res, rows, `${table.replaceAll("_", " ")} loaded`, 200, { page, limit, total, pages: Math.ceil(total / limit) });
 });
 
 export const updateWithdrawal = asyncHandler(async (req, res) => {

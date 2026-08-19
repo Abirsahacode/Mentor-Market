@@ -1,12 +1,13 @@
 import {
-  ArrowRight, BadgeCheck, Banknote, BarChart3, BookOpenCheck, CalendarDays,
+  ArrowRight, BadgeCheck, Banknote, BarChart3, Bell, BookOpenCheck, CalendarDays,
   CheckCircle2, Clock3, Compass, FileCheck2, MessageCircleMore, Plus, Search,
-  ShieldAlert, ShieldCheck, UserPlus, UsersRound,
+  ShieldAlert, ShieldCheck, UserPlus, UsersRound, Wallet,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Alert from "../components/Alert.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import LiveClassAction from "../components/LiveClassAction.jsx";
+import MiniBarChart from "../components/MiniBarChart.jsx";
 import { SkeletonCard, SkeletonStat } from "../components/Skeleton.jsx";
 import StatCard from "../components/StatCard.jsx";
 import UserAvatar from "../components/UserAvatar.jsx";
@@ -83,6 +84,39 @@ function DashboardSkeleton({ label = "Loading dashboard" }) {
   );
 }
 
+const relativeTime = (value) => {
+  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+};
+
+function RecentActivityPanel({ notificationsPath = "/notifications" }) {
+  const { data, loading } = useApi("/notifications");
+  const recent = (Array.isArray(data) ? data : []).slice(0, 5);
+  return (
+    <article className="panel activity-panel-card">
+      <div className="panel-heading"><div><span className="panel-eyebrow">Stay in the loop</span><h2>Recent activity</h2></div></div>
+      {loading ? (
+        <SkeletonCard count={1} label="Loading recent activity" />
+      ) : recent.length ? (
+        <div className="activity-panel">
+          {recent.map((item) => (
+            <div className="activity-panel-row" key={item.id}>
+              <Bell size={15} />
+              <div><strong>{item.title}</strong><small>{item.message} · {relativeTime(item.created_at)}</small></div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState className="empty-state-compact" icon={Bell} title="No notifications yet" description="Updates about your bookings, proposals, and messages will show up here." />
+      )}
+    </article>
+  );
+}
+
 function AdminDashboard({ displayName }) {
   const { data, loading, error, reload } = useApi("/admin/dashboard", {});
   if (loading) return <DashboardSkeleton label="Loading marketplace dashboard" />;
@@ -103,6 +137,10 @@ function AdminDashboard({ displayName }) {
   const maxSubject = Math.max(...(data.popular_subjects || []).map((item) => Number(item.total)), 1);
   const popularSubjects = data.popular_subjects || [];
   const attentionTotal = Number(data.pending_verifications || 0) + Number(data.open_reports || 0);
+  const weeklyTrend = (data.weekly_trend || []).map((item) => ({
+    ...item,
+    label: new Date(item.week).toLocaleDateString("en", { month: "short", day: "numeric" }),
+  }));
 
   return (
     <>
@@ -181,6 +219,20 @@ function AdminDashboard({ displayName }) {
           <span><small>Bookings</small><strong>{data.total_bookings || 0}</strong></span>
         </div>
       </article>
+
+      <div className="dashboard-two-column">
+        <article className="panel analytics-panel">
+          <div className="panel-heading">
+            <div><span className="panel-eyebrow">Momentum</span><h2>Bookings, last 8 weeks</h2></div>
+          </div>
+          {weeklyTrend.length ? (
+            <MiniBarChart data={weeklyTrend} valueKey="bookings" ariaLabel="Weekly bookings trend" formatValue={(value) => `${value} bookings`} />
+          ) : (
+            <EmptyState className="empty-state-compact" icon={BarChart3} title="No booking activity yet" description="Weekly booking volume will chart here once classes start getting scheduled." />
+          )}
+        </article>
+        <RecentActivityPanel />
+      </div>
     </>
   );
 }
@@ -326,6 +378,41 @@ function UserDashboard({ role, displayName }) {
           <Link to={`/${role}/messages`}><MessageCircleMore size={17} /><span><strong>Messages</strong><small>Continue conversations</small></span><ArrowRight size={15} /></Link>
           <Link to={`/${role}/${isStudent ? "assignments" : "materials"}`}><BookOpenCheck size={17} /><span><strong>{isStudent ? "Assignments" : "Study materials"}</strong><small>{isStudent ? "View due work" : "Share a resource"}</small></span><ArrowRight size={15} /></Link>
         </article>
+      </div>
+
+      <div className="dashboard-two-column dashboard-user-columns">
+        {isStudent ? (
+          <article className="panel performance-panel">
+            <div className="panel-heading"><div><span className="panel-eyebrow">Learning signal</span><h2>Performance breakdown</h2></div><Link to="/student/progress">Full report <ArrowRight size={14} /></Link></div>
+            {performanceData.total_classes || performanceData.total_assignments || performanceData.quizzes_attempted ? (
+              <div className="performance-breakdown">
+                <div><span>Attendance</span><div><i style={{ width: `${Math.min(Number(performanceData.attendance_percentage || 0), 100)}%` }} /></div><b>{performanceData.attendance_percentage || 0}%</b></div>
+                <div><span>Assignments done</span><div><i style={{ width: `${Math.min(Number(performanceData.completion_percentage || 0), 100)}%` }} /></div><b>{performanceData.completion_percentage || 0}%</b></div>
+                <div><span>Quiz average</span><div><i style={{ width: `${Math.min(Number(performanceData.average_quiz_score || 0), 100)}%` }} /></div><b>{performanceData.average_quiz_score || 0}%</b></div>
+              </div>
+            ) : (
+              <EmptyState className="empty-state-compact" icon={BarChart3} title="No performance signal yet" description="Complete classes, assignments, and quizzes to see your breakdown here." />
+            )}
+          </article>
+        ) : (
+          <article className="panel performance-panel">
+            <div className="panel-heading">
+              <div><span className="panel-eyebrow">Teaching income</span><h2>Earnings, last 6 months</h2></div>
+              <span className="panel-period">৳{Number(performanceData.pending_earnings || 0).toLocaleString()} pending</span>
+            </div>
+            {(performanceData.monthly_trend || []).length ? (
+              <MiniBarChart
+                data={(performanceData.monthly_trend || []).map((item) => ({ ...item, label: new Date(`${item.month}-01`).toLocaleDateString("en", { month: "short" }) }))}
+                valueKey="total"
+                ariaLabel="Monthly earnings trend"
+                formatValue={(value) => `৳${Number(value).toLocaleString()}`}
+              />
+            ) : (
+              <EmptyState className="empty-state-compact" icon={Wallet} title="No paid earnings yet" description="Completed and paid classes will chart your income trend here." />
+            )}
+          </article>
+        )}
+        <RecentActivityPanel />
       </div>
 
       {role === "tutor" && (

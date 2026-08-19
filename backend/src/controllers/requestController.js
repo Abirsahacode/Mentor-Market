@@ -2,6 +2,7 @@ import db from "../config/db.js";
 import StudentRequest from "../models/StudentRequest.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { logModeration } from "../utils/moderationLog.js";
 import { getPagination } from "../utils/pagination.js";
 import { sendSuccess } from "../utils/respond.js";
 
@@ -56,7 +57,8 @@ export const updateRequest = asyncHandler(async (req, res) => {
 });
 
 export const deleteRequest = asyncHandler(async (req, res) => {
-  await assertRequestOwner(req);
+  const request = await assertRequestOwner(req);
   await StudentRequest.remove(req.params.id);
+  if (req.user.role === "admin") await logModeration(req.user.id, "delete_student_request", "student_request", request.id, req.body.reason);
   res.status(204).send();
 });

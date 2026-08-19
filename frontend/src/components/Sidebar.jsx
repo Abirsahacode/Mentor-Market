@@ -27,7 +27,7 @@ export const workspaceNavigation = {
   admin: [
     { label: "Overview", items: [["dashboard", "Marketplace pulse", LayoutDashboard], ["users", "All users", UsersRound], ["students", "Students", GraduationCap], ["tutors", "Tutors", UserRoundCheck]] },
     { label: "Marketplace", items: [["tutor-posts", "Tutor posts", FileStack], ["student-requests", "Student requests", Search], ["applications", "Applications", BriefcaseBusiness], ["bookings", "Bookings", CalendarDays]] },
-    { label: "Trust & finance", items: [["payments", "Payments", Banknote], ["reviews", "Reviews", Star], ["verifications", "Verification queue", BadgeCheck], ["reports", "Safety reports", ShieldAlert]] },
+    { label: "Trust & finance", items: [["payments", "Payments", Banknote], ["reviews", "Reviews", Star], ["verifications", "Verification queue", BadgeCheck], ["reports", "Safety reports", ShieldAlert], ["moderation-logs", "Activity log", ClipboardCheck], ["contact-messages", "Contact messages", LifeBuoy]] },
   ],
 };
 

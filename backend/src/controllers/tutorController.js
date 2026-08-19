@@ -72,7 +72,12 @@ export const getEarnings = asyncHandler(async (req, res) => {
   );
   const [payments] = await db.query("SELECT * FROM payments WHERE tutor_id = ? ORDER BY created_at DESC LIMIT 20", [req.user.id]);
   const [withdrawals] = await db.query("SELECT * FROM withdrawal_requests WHERE tutor_id = ? ORDER BY created_at DESC", [req.user.id]);
-  sendSuccess(res, { ...summary, payments, withdrawals }, "Earnings loaded");
+  const [monthlyTrend] = await db.query(
+    `SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, SUM(tutor_earning) AS total
+     FROM payments WHERE tutor_id = ? AND status = 'paid' AND created_at >= DATE_SUB(CURRENT_DATE, INTERVAL 6 MONTH)
+     GROUP BY month ORDER BY month ASC`, [req.user.id],
+  );
+  sendSuccess(res, { ...summary, payments, withdrawals, monthly_trend: monthlyTrend }, "Earnings loaded");
 });
 
 export const requestWithdrawal = asyncHandler(async (req, res) => {

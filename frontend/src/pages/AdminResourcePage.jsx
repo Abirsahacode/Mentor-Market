@@ -1,10 +1,12 @@
 import {
   BadgeCheck, BookOpenCheck, CalendarDays, ClipboardList, CreditCard,
-  ShieldCheck, Star, UsersRound,
+  History, Mail, ShieldCheck, Star, UsersRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
+import AccessibleDialog from "../components/AccessibleDialog.jsx";
+import FormField from "../components/FormField.jsx";
 import ResourcePage from "../components/ResourcePage.jsx";
 
 const status = (value) => <span className={`status-badge status-${value}`}>{String(value).replaceAll("_", " ")}</span>;
@@ -28,19 +30,61 @@ function MutationButton({ actionKey, pendingAction, className = "", label, pendi
   );
 }
 
+function ReasonDialog({ title, description, statusOptions, defaultStatus, submitLabel = "Submit", pending, onSubmit, onClose }) {
+  const [reason, setReason] = useState("");
+  const [decisionStatus, setDecisionStatus] = useState(defaultStatus || "");
+  const titleId = "moderation-reason-title";
+  return (
+    <AccessibleDialog
+      as="form"
+      onClose={onClose}
+      labelledBy={titleId}
+      onSubmit={(event) => { event.preventDefault(); onSubmit({ reason, status: decisionStatus }); }}
+    >
+      <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">×</button>
+      <span className="eyebrow">Moderation note</span>
+      <h2 id={titleId}>{title}</h2>
+      {description && <p className="modal-intro">{description}</p>}
+      {statusOptions && (
+        <FormField
+          name="status"
+          label="Outcome"
+          value={decisionStatus}
+          onChange={(event) => setDecisionStatus(event.target.value)}
+          options={statusOptions}
+          required
+        />
+      )}
+      <FormField
+        name="reason"
+        label="Reason (shared with the affected person)"
+        as="textarea"
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+        placeholder="Explain the decision so they understand what to do next."
+      />
+      <button className="button button-block" disabled={pending} aria-busy={pending || undefined}>
+        {pending ? "Submitting…" : submitLabel}
+      </button>
+    </AccessibleDialog>
+  );
+}
+
 const configs = {
-  users: { title: "Manage users", endpoint: "/admin/users?limit=100", columns: [{ key: "full_name", label: "Name" }, { key: "email", label: "Email" }, { key: "role", label: "Role" }, { key: "is_active", label: "Active", render: accountStatus }, { key: "created_at", label: "Joined", render: (v) => new Date(v).toLocaleDateString() }] },
-  students: { title: "Manage students", endpoint: "/admin/users?role=student&limit=100", columns: [{ key: "full_name", label: "Student" }, { key: "email", label: "Email" }, { key: "phone", label: "Phone" }, { key: "is_active", label: "Active", render: accountStatus }] },
-  tutors: { title: "Manage tutors", endpoint: "/admin/users?role=tutor&limit=100", columns: [{ key: "full_name", label: "Tutor" }, { key: "email", label: "Email" }, { key: "phone", label: "Phone" }, { key: "is_active", label: "Active", render: accountStatus }] },
-  "tutor-posts": { title: "Manage tutor posts", endpoint: "/admin/tutor_posts", resource: "tutor-posts", columns: [{ key: "title", label: "Title" }, { key: "subject", label: "Subject" }, { key: "tutor_id", label: "Tutor ID" }, { key: "price", label: "Price" }, { key: "status", label: "Status", render: status }] },
-  "student-requests": { title: "Manage student requests", endpoint: "/admin/student_requests", resource: "student-requests", columns: [{ key: "subject", label: "Subject" }, { key: "class_level", label: "Level" }, { key: "student_id", label: "Student ID" }, { key: "budget", label: "Budget" }, { key: "status", label: "Status", render: status }] },
-  applications: { title: "Manage applications", endpoint: "/admin/applications", columns: [{ key: "student_request_id", label: "Request ID" }, { key: "tutor_id", label: "Tutor ID" }, { key: "expected_fee", label: "Fee" }, { key: "available_time", label: "Available" }, { key: "status", label: "Status", render: status }] },
-  bookings: { title: "Manage bookings", endpoint: "/admin/bookings", columns: [{ key: "student_id", label: "Student ID" }, { key: "tutor_id", label: "Tutor ID" }, { key: "class_date", label: "Date" }, { key: "mode", label: "Mode" }, { key: "status", label: "Status", render: status }] },
-  payments: { title: "Manage payments", endpoint: "/admin/payments", columns: [{ key: "booking_id", label: "Booking" }, { key: "amount", label: "Amount" }, { key: "commission", label: "Commission" }, { key: "payment_method", label: "Method" }, { key: "status", label: "Status", render: status }] },
-  reviews: { title: "Manage reviews", endpoint: "/admin/reviews", columns: [{ key: "reviewer_id", label: "Reviewer" }, { key: "receiver_id", label: "Receiver" }, { key: "rating", label: "Rating" }, { key: "comment", label: "Comment" }, { key: "created_at", label: "Created" }] },
+  users: { title: "Manage users", endpoint: "/admin/users", paginated: true, columns: [{ key: "full_name", label: "Name" }, { key: "email", label: "Email" }, { key: "role", label: "Role" }, { key: "is_active", label: "Active", render: accountStatus }, { key: "created_at", label: "Joined", render: (v) => new Date(v).toLocaleDateString() }] },
+  students: { title: "Manage students", endpoint: "/admin/users?role=student", paginated: true, columns: [{ key: "full_name", label: "Student" }, { key: "email", label: "Email" }, { key: "phone", label: "Phone" }, { key: "is_active", label: "Active", render: accountStatus }] },
+  tutors: { title: "Manage tutors", endpoint: "/admin/users?role=tutor", paginated: true, columns: [{ key: "full_name", label: "Tutor" }, { key: "email", label: "Email" }, { key: "phone", label: "Phone" }, { key: "is_active", label: "Active", render: accountStatus }] },
+  "tutor-posts": { title: "Manage tutor posts", endpoint: "/admin/tutor_posts", resource: "tutor-posts", paginated: true, columns: [{ key: "title", label: "Title" }, { key: "subject", label: "Subject" }, { key: "tutor_id", label: "Tutor ID" }, { key: "price", label: "Price" }, { key: "status", label: "Status", render: status }] },
+  "student-requests": { title: "Manage student requests", endpoint: "/admin/student_requests", resource: "student-requests", paginated: true, columns: [{ key: "subject", label: "Subject" }, { key: "class_level", label: "Level" }, { key: "student_id", label: "Student ID" }, { key: "budget", label: "Budget" }, { key: "status", label: "Status", render: status }] },
+  applications: { title: "Manage applications", endpoint: "/admin/applications", paginated: true, columns: [{ key: "student_request_id", label: "Request ID" }, { key: "tutor_id", label: "Tutor ID" }, { key: "expected_fee", label: "Fee" }, { key: "available_time", label: "Available" }, { key: "status", label: "Status", render: status }] },
+  bookings: { title: "Manage bookings", endpoint: "/admin/bookings", paginated: true, columns: [{ key: "student_id", label: "Student ID" }, { key: "tutor_id", label: "Tutor ID" }, { key: "class_date", label: "Date" }, { key: "mode", label: "Mode" }, { key: "status", label: "Status", render: status }] },
+  payments: { title: "Manage payments", endpoint: "/admin/payments", paginated: true, columns: [{ key: "booking_id", label: "Booking" }, { key: "amount", label: "Amount" }, { key: "commission", label: "Commission" }, { key: "payment_method", label: "Method" }, { key: "status", label: "Status", render: status }] },
+  reviews: { title: "Manage reviews", endpoint: "/admin/reviews", paginated: true, columns: [{ key: "reviewer_id", label: "Reviewer" }, { key: "receiver_id", label: "Receiver" }, { key: "rating", label: "Rating" }, { key: "comment", label: "Comment" }, { key: "created_at", label: "Created" }] },
   verifications: {
     title: "Verification requests",
-    endpoint: "/verifications?status=pending",
+    endpoint: "/verifications",
+    statusOptions: [{ value: "", label: "All statuses" }, { value: "pending", label: "Pending" }, { value: "verified", label: "Verified" }, { value: "rejected", label: "Rejected" }],
+    defaultStatusFilter: "pending",
     columns: [
       { key: "tutor_name", label: "Mentor" },
       { key: "certificate_name", label: "Certificate" },
@@ -56,7 +100,42 @@ const configs = {
       { key: "status", label: "Status", render: status },
     ],
   },
-  reports: { title: "Reports and safety", endpoint: "/admin/reports", columns: [{ key: "reporter_id", label: "Reporter" }, { key: "reported_user_id", label: "Reported user" }, { key: "category", label: "Category" }, { key: "description", label: "Description" }, { key: "status", label: "Status", render: status }] },
+  reports: {
+    title: "Reports and safety",
+    endpoint: "/admin/reports",
+    paginated: true,
+    statusOptions: [{ value: "", label: "All statuses" }, { value: "open", label: "Open" }, { value: "investigating", label: "Investigating" }, { value: "resolved", label: "Resolved" }, { value: "dismissed", label: "Dismissed" }],
+    defaultStatusFilter: "",
+    columns: [{ key: "reporter_id", label: "Reporter" }, { key: "reported_user_id", label: "Reported user" }, { key: "category", label: "Category" }, { key: "description", label: "Description" }, { key: "status", label: "Status", render: status }],
+  },
+  "moderation-logs": {
+    title: "Moderation activity log",
+    endpoint: "/admin/moderation-logs",
+    paginated: true,
+    readOnly: true,
+    columns: [
+      { key: "created_at", label: "When", render: (v) => new Date(v).toLocaleString() },
+      { key: "admin_name", label: "Admin" },
+      { key: "action", label: "Action", render: (v) => String(v).replaceAll("_", " ") },
+      { key: "target_type", label: "Target type" },
+      { key: "target_id", label: "Target ID" },
+      { key: "reason", label: "Reason", render: (v) => v || "—" },
+    ],
+  },
+  "contact-messages": {
+    title: "Contact messages",
+    endpoint: "/admin/contact_messages",
+    resource: "contact-messages",
+    paginated: true,
+    columns: [
+      { key: "name", label: "Name" },
+      { key: "email", label: "Email" },
+      { key: "subject", label: "Subject", render: (v) => v || "—" },
+      { key: "message", label: "Message" },
+      { key: "status", label: "Status", render: status },
+      { key: "created_at", label: "Received", render: (v) => new Date(v).toLocaleDateString() },
+    ],
+  },
 };
 
 const descriptions = {
@@ -71,6 +150,8 @@ const descriptions = {
   reviews: "Protect useful feedback by removing abusive or misleading reviews.",
   verifications: "Review professional evidence before awarding a Verified Mentor badge.",
   reports: "Resolve safety cases with a clear record of every administrative decision.",
+  "moderation-logs": "A read-only record of every suspension, verification decision, and report resolution.",
+  "contact-messages": "Follow up on questions and safety concerns submitted through the public contact form.",
 };
 
 const emptyStates = {
@@ -147,6 +228,16 @@ const emptyStates = {
     title: "Safety queue is clear",
     description: "No marketplace reports need review right now.",
   },
+  "moderation-logs": {
+    icon: History,
+    title: "No moderation activity yet",
+    description: "Suspensions, verification decisions, and report resolutions will be recorded here.",
+  },
+  "contact-messages": {
+    icon: Mail,
+    title: "No contact messages",
+    description: "Messages submitted through the public contact form will appear here.",
+  },
 };
 
 export default function AdminResourcePage({ type }) {
@@ -154,10 +245,14 @@ export default function AdminResourcePage({ type }) {
   const emptyState = emptyStates[type];
   const [pendingAction, setPendingAction] = useState("");
   const [feedback, setFeedback] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(config.defaultStatusFilter ?? "");
+  const [reasonPrompt, setReasonPrompt] = useState(null);
 
   useEffect(() => {
     setPendingAction("");
     setFeedback(null);
+    setStatusFilter(config.defaultStatusFilter ?? "");
+    setReasonPrompt(null);
   }, [type]);
 
   const run = async ({
@@ -218,13 +313,7 @@ export default function AdminResourcePage({ type }) {
             pendingAction={pendingAction}
             label="Verify"
             pendingLabel="Verifying…"
-            onClick={() => run({
-              actionKey: verifyKey,
-              url: `/verifications/${row.id}/decision`,
-              body: { status: "verified", admin_feedback: "Credentials approved." },
-              confirmation: `Approve ${recordName}'s verification request? This will award the mentor a verified badge.`,
-              successMessage: `${recordName}'s verification request was approved.`,
-            }, reload)}
+            onClick={() => setReasonPrompt({ kind: "verify", row, reload, recordName })}
           />
           <MutationButton
             actionKey={rejectKey}
@@ -232,13 +321,7 @@ export default function AdminResourcePage({ type }) {
             className="button-danger"
             label="Reject"
             pendingLabel="Rejecting…"
-            onClick={() => run({
-              actionKey: rejectKey,
-              url: `/verifications/${row.id}/decision`,
-              body: { status: "rejected", admin_feedback: "Please provide clearer evidence." },
-              confirmation: `Reject ${recordName}'s verification request? The mentor will be asked to provide clearer evidence.`,
-              successMessage: `${recordName}'s verification request was rejected.`,
-            }, reload)}
+            onClick={() => setReasonPrompt({ kind: "reject", row, reload, recordName })}
           />
         </>
       );
@@ -251,14 +334,26 @@ export default function AdminResourcePage({ type }) {
         <MutationButton
           actionKey={actionKey}
           pendingAction={pendingAction}
-          label="Resolve"
-          pendingLabel="Resolving…"
+          label="Update"
+          pendingLabel="Updating…"
+          onClick={() => setReasonPrompt({ kind: "resolve-report", row, reload })}
+        />
+      );
+    }
+
+    if (type === "contact-messages" && row.status !== "resolved") {
+      const actionKey = `resolve-contact-${row.id}`;
+      return (
+        <MutationButton
+          actionKey={actionKey}
+          pendingAction={pendingAction}
+          label="Mark resolved"
+          pendingLabel="Updating…"
           onClick={() => run({
             actionKey,
-            url: `/reports/${row.id}`,
-            body: { status: "resolved", admin_notes: "Reviewed by administrator." },
-            confirmation: `Resolve safety report #${row.id}? This will close the case.`,
-            successMessage: `Safety report #${row.id} was resolved.`,
+            url: `/contact/${row.id}`,
+            body: { status: "resolved" },
+            successMessage: `Message from ${recordName} was marked resolved.`,
           }, reload)}
         />
       );
@@ -366,23 +461,79 @@ export default function AdminResourcePage({ type }) {
     return null;
   };
 
+  const closeReasonPrompt = () => setReasonPrompt(null);
+
+  const submitReasonPrompt = async ({ reason, status }) => {
+    if (!reasonPrompt) return;
+    const { kind, row, reload, recordName } = reasonPrompt;
+    if (kind === "resolve-report") {
+      await run({
+        actionKey: `resolve-report-${row.id}`,
+        url: `/reports/${row.id}`,
+        body: { status: status || "resolved", admin_notes: reason },
+        successMessage: `Safety report #${row.id} was marked ${status || "resolved"}.`,
+      }, reload);
+    } else {
+      const decision = kind === "verify" ? "verified" : "rejected";
+      await run({
+        actionKey: `${kind === "verify" ? "verify" : "reject-verification"}-${row.id}`,
+        url: `/verifications/${row.id}/decision`,
+        body: { status: decision, admin_feedback: reason },
+        successMessage: `${recordName}'s verification request was ${decision}.`,
+      }, reload);
+    }
+    setReasonPrompt(null);
+  };
+
+  const statusOptions = config.statusOptions;
+  const toolbarExtra = statusOptions ? (
+    <label className="resource-status-filter">
+      <span className="sr-only">Filter by status</span>
+      <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+        {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </label>
+  ) : undefined;
+
   return (
-    <ResourcePage
-      title={config.title}
-      description={descriptions[type]}
-      endpoint={config.endpoint}
-      columns={config.columns}
-      actions={actions}
-      feedback={feedback}
-      striped
-      emptyState={{
-        icon: emptyState.icon,
-        title: emptyState.title,
-        description: emptyState.description,
-        action: emptyState.actionPath
-          ? <Link className="button button-ghost" to={emptyState.actionPath}>{emptyState.actionLabel}</Link>
-          : undefined,
-      }}
-    />
+    <>
+      <ResourcePage
+        title={config.title}
+        description={descriptions[type]}
+        endpoint={config.endpoint}
+        columns={config.columns}
+        actions={config.readOnly ? undefined : actions}
+        feedback={feedback}
+        striped
+        paginated={config.paginated}
+        extraQuery={statusOptions ? { status: statusFilter } : undefined}
+        toolbarExtra={toolbarExtra}
+        emptyState={{
+          icon: emptyState.icon,
+          title: emptyState.title,
+          description: emptyState.description,
+          action: emptyState.actionPath
+            ? <Link className="button button-ghost" to={emptyState.actionPath}>{emptyState.actionLabel}</Link>
+            : undefined,
+        }}
+      />
+      {reasonPrompt && (
+        <ReasonDialog
+          title={
+            reasonPrompt.kind === "resolve-report"
+              ? `Update safety report #${reasonPrompt.row.id}`
+              : reasonPrompt.kind === "verify"
+                ? `Approve ${reasonPrompt.recordName}'s verification`
+                : `Reject ${reasonPrompt.recordName}'s verification`
+          }
+          statusOptions={reasonPrompt.kind === "resolve-report" ? configs.reports.statusOptions.filter((option) => option.value) : undefined}
+          defaultStatus={reasonPrompt.kind === "resolve-report" ? "resolved" : undefined}
+          submitLabel={reasonPrompt.kind === "resolve-report" ? "Update report" : reasonPrompt.kind === "verify" ? "Approve verification" : "Reject verification"}
+          pending={Boolean(pendingAction)}
+          onClose={closeReasonPrompt}
+          onSubmit={submitReasonPrompt}
+        />
+      )}
+    </>
   );
 }

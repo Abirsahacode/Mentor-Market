@@ -20,8 +20,9 @@ const routeLabels = {
   quizzes: "Quizzes", progress: "Progress", payments: "Payments", reviews: "Reviews",
   reports: "Help & safety", notifications: "Notifications", "create-service": "Create course",
   services: "My courses", earnings: "Earnings", verification: "Verification", users: "Users",
+  curriculum: "Learning path",
   students: "Students", "tutor-posts": "Tutor posts", "student-requests": "Student requests",
-  verifications: "Verification queue",
+  verifications: "Verification queue", "moderation-logs": "Activity log", "contact-messages": "Contact messages",
 };
 
 const roleLabels = { student: "Learning atelier", tutor: "Teaching atelier", admin: "Marketplace atelier" };

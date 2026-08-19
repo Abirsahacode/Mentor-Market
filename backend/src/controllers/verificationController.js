@@ -2,6 +2,7 @@ import db from "../config/db.js";
 import Verification from "../models/Verification.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { logModeration } from "../utils/moderationLog.js";
 import { notify } from "../utils/notifications.js";
 import { sendSuccess } from "../utils/respond.js";
 
@@ -94,5 +95,6 @@ export const decideVerification = asyncHandler(async (req, res) => {
     connection.release();
   }
   await notify(verification.tutor_id, `Verification ${req.body.status}`, req.body.admin_feedback || `Your mentor verification was ${req.body.status}.`, `verification_${req.body.status}`);
+  await logModeration(req.user.id, `verification_${req.body.status}`, "verification", verification.id, req.body.admin_feedback);
   sendSuccess(res, updated, `Tutor verification ${req.body.status}`);
 });

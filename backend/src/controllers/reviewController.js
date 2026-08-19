@@ -3,8 +3,21 @@ import Booking from "../models/Booking.js";
 import Review from "../models/Review.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { logModeration } from "../utils/moderationLog.js";
 import { notify } from "../utils/notifications.js";
 import { sendSuccess } from "../utils/respond.js";
+
+export const listFeatured = asyncHandler(async (req, res) => {
+  const [rows] = await db.query(
+    `SELECT r.id, r.rating, r.comment, r.created_at, u.full_name AS reviewer_name, receiver.full_name AS receiver_name
+     FROM reviews r
+     JOIN users u ON u.id = r.reviewer_id
+     JOIN users receiver ON receiver.id = r.receiver_id
+     WHERE r.rating >= 4 AND CHAR_LENGTH(TRIM(r.comment)) >= 20
+     ORDER BY r.rating DESC, r.created_at DESC LIMIT 6`,
+  );
+  sendSuccess(res, rows, "Featured reviews loaded");
+});
 
 export const listReviews = asyncHandler(async (req, res) => {
   const receiverId = req.query.receiver_id || req.user.id;
@@ -40,5 +53,6 @@ export const deleteReview = asyncHandler(async (req, res) => {
     `UPDATE tutor_profiles SET average_rating = COALESCE((SELECT ROUND(AVG(rating), 2) FROM reviews WHERE receiver_id = ?), 0) WHERE user_id = ?`,
     [review.receiver_id, review.receiver_id],
   );
+  if (req.user.role === "admin") await logModeration(req.user.id, "delete_review", "review", review.id, req.body.reason);
   res.status(204).send();
 });

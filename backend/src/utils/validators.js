@@ -16,6 +16,20 @@ export const loginRules = [
 export const requiredFields = (...fields) => fields.map((field) =>
   body(field).notEmpty().withMessage("is required"));
 
+export const contactRules = [
+  body("name").trim().isLength({ min: 2, max: 120 }).withMessage("must be 2-120 characters"),
+  body("email").isEmail().normalizeEmail().withMessage("must be a valid email address"),
+  body("subject").optional({ checkFalsy: true }).trim().isLength({ max: 160 }).withMessage("must be at most 160 characters"),
+  body("message").trim().isLength({ min: 10, max: 2000 }).withMessage("must be 10-2000 characters"),
+];
+
+export const tutorPostRules = [
+  body("price").isFloat({ gt: 0 }).withMessage("must be a positive number"),
+  body("thumbnail_url").optional({ checkFalsy: true }).isURL().withMessage("must be a valid URL"),
+  body("demo_video_url").optional({ checkFalsy: true }).isURL().withMessage("must be a valid URL"),
+  body("teaching_mode").isIn(["online", "offline", "both"]).withMessage("must be online, offline, or both"),
+];
+
 const subjectsRules = (field) => [
   body(field).optional().isArray({ max: 20 }).withMessage("must be a list of up to 20 subjects"),
   body(`${field}.*`).optional().isString().trim().isLength({ min: 1, max: 60 }).withMessage("must be 1-60 characters"),

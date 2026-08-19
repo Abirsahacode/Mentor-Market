@@ -4,7 +4,7 @@ import {
   Sparkles, Star, Video, X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api, { getErrorMessage } from "../api/axios.js";
 import Alert from "../components/Alert.jsx";
 import CourseArtwork from "../components/CourseArtwork.jsx";
@@ -98,12 +98,31 @@ export default function CourseDiscoveryPage() {
   const progress = useApi("/students/progress", {});
   const courses = catalog.data;
 
-  const [query, setQuery] = useState("");
-  const [subject, setSubject] = useState("All");
-  const [sort, setSort] = useState("recommended");
-  const [mode, setMode] = useState("all");
-  const [trialOnly, setTrialOnly] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const updateParams = useCallback((updates) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "" || value === false) next.delete(key);
+      else next.set(key, String(value));
+    });
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const query = searchParams.get("q") || "";
+  const subject = searchParams.get("subject") || "All";
+  const sort = searchParams.get("sort") || "recommended";
+  const mode = searchParams.get("mode") || "all";
+  const trialOnly = searchParams.get("trial") === "true";
+  const maxPriceParam = searchParams.get("maxPrice");
+  const maxPrice = maxPriceParam !== null ? Number(maxPriceParam) : null;
+
+  const setQuery = (value) => updateParams({ q: value });
+  const setSubject = (value) => updateParams({ subject: value === "All" ? null : value });
+  const setSort = (value) => updateParams({ sort: value === "recommended" ? null : value });
+  const setMode = (value) => updateParams({ mode: value === "all" ? null : value });
+  const setTrialOnly = (value) => updateParams({ trial: value ? "true" : null });
+  const setMaxPrice = (value) => updateParams({ maxPrice: value });
+
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [displayCount, setDisplayCount] = useState(8);
@@ -200,17 +219,9 @@ export default function CourseDiscoveryPage() {
     setMessage("Your learning feed has been retuned.");
   };
 
-  const clearFilters = () => {
-    setMode("all");
-    setTrialOnly(false);
-    setMaxPrice(null);
-  };
+  const clearFilters = () => updateParams({ mode: null, trial: null, maxPrice: null });
 
-  const clearAllFilters = () => {
-    setQuery("");
-    setSubject("All");
-    clearFilters();
-  };
+  const clearAllFilters = () => updateParams({ q: null, subject: null, mode: null, trial: null, maxPrice: null });
 
   const shownCourses = visibleCourses.slice(0, displayCount);
   const isPositiveMessage = /saved|removed|retuned/i.test(message);

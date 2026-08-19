@@ -271,6 +271,13 @@
 .public-shell .home-process li h3 { font-size: 1.17rem; }
 .public-shell .home-process li p { margin-top: 8px; font-size: .81rem; }
 .public-shell .home-process li > svg { color: var(--color-disabled); }
+.public-shell .home-testimonials-section { padding-block: clamp(40px, 5vw, 70px) 10px; }
+.public-shell .testimonial-card { display: flex; padding: 26px; flex-direction: column; gap: 14px; border: 1px solid var(--color-line); border-radius: var(--pub-radius-lg); background: var(--color-surface-raised); }
+.public-shell .testimonial-rating { color: var(--pub-jade); letter-spacing: 2px; }
+.public-shell .testimonial-card p { margin: 0; flex: 1; color: var(--pub-ink); font-size: .92rem; line-height: 1.5; }
+.public-shell .testimonial-card footer { display: flex; align-items: center; gap: 10px; }
+.public-shell .testimonial-card footer strong { display: block; font-size: .82rem; }
+.public-shell .testimonial-card footer small { color: var(--color-muted); font-size: .74rem; }
 .public-shell .home-final-cta { display: grid; margin-block: 90px; padding: 36px 40px; grid-template-columns: 56px 1fr auto; align-items: center; gap: 23px; border: 1px solid var(--line-success); border-radius: var(--pub-radius-lg); background: var(--pub-azure-soft); box-shadow: none; }
 .public-shell .cta-mark { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 15px; background: var(--color-surface-raised); color: var(--pub-azure); box-shadow: var(--pub-shadow-sm); }
 .public-shell .home-final-cta small { color: var(--color-action); font-size: .7rem; font-weight: 740; text-transform: uppercase; }
@@ -514,6 +521,14 @@
 .public-shell .information-list { border-top-color: var(--color-line); }.public-shell .information-list article { position: relative; display: grid; padding: 34px 0; grid-template-columns: 50px 210px 1fr 28px; align-items: start; gap: 18px; border-bottom-color: var(--color-line); }.public-shell .information-list article > span { color: var(--pub-jade-dark); font-size: .72rem; }.public-shell .information-list h2 { font-size: 1.2rem; }.public-shell .information-list p { font-size: .85rem; }.public-shell .information-list article > svg { color: var(--color-disabled); }
 .public-shell .information-principle { display: grid; margin-bottom: 95px; padding: 35px; grid-template-columns: 45px minmax(0, 1fr) minmax(280px, .55fr); align-items: center; gap: 22px; border-radius: 19px; background: var(--pub-ink); }.public-shell .information-principle > svg { color: var(--color-brand-bright); }.public-shell .information-principle span { color: var(--color-brand-bright); font-size: .71rem; font-weight: 740; text-transform: uppercase; }.public-shell .information-principle h2 { max-width: 640px; margin: 6px 0 0; color: var(--color-on-strong); font-size: 1.5rem; }.public-shell .information-principle p { margin: 0; color: var(--color-on-inverse-muted); font-size: .79rem; }
 .public-shell .information-cta { display: grid; margin-bottom: 100px; padding: 38px 0; grid-template-columns: 1fr auto auto; align-items: center; gap: 22px; border-block-color: var(--color-line); }.public-shell .information-cta small { color: var(--pub-jade-dark); font-size: .71rem; font-weight: 740; text-transform: uppercase; }.public-shell .information-cta h2 { margin: 6px 0 4px; font-size: 1.7rem; }.public-shell .information-cta p { font-size: .79rem; }
+
+.public-shell .contact-form-section { display: flex; margin-bottom: 60px; justify-content: center; }
+.public-shell .contact-form { display: flex; width: min(560px, 100%); flex-direction: column; gap: 14px; }
+.public-shell .contact-form .panel-eyebrow { color: var(--pub-jade-dark); font-size: .71rem; font-weight: 740; text-transform: uppercase; }
+.public-shell .contact-form h2 { margin: 4px 0 6px; font-size: 1.3rem; }
+.public-shell .contact-form-success { display: flex; width: min(560px, 100%); margin: 0 auto 60px; padding: 40px; flex-direction: column; align-items: center; gap: 10px; border: 1px solid var(--color-line); border-radius: 16px; background: var(--pub-jade-soft); color: var(--pub-jade); text-align: center; }
+.public-shell .contact-form-success h3 { margin: 0; color: var(--pub-ink); font-size: 1.15rem; }
+.public-shell .contact-form-success p { margin: 0; color: var(--color-muted); font-size: .85rem; }
 
 /* Footer */
 .public-shell .footer { padding: 0; background: var(--pub-ink); }
