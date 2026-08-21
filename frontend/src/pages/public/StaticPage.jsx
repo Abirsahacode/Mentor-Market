@@ -1,7 +1,11 @@
-import { ArrowRight, CirclePlay, Mail, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, CirclePlay, Mail, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import api, { getErrorMessage } from "../../api/axios.js";
 import AmbientVideo from "../../components/AmbientVideo.jsx";
+import Alert from "../../components/Alert.jsx";
 import DemoVideo from "../../components/DemoVideo.jsx";
+import FormField from "../../components/FormField.jsx";
 
 const content = {
   about: {
@@ -34,13 +38,59 @@ const content = {
   contact: {
     label: "Support and safety",
     title: "Questions deserve a human answer.",
-    text: "This demonstration project does not send external support tickets, but these details represent the intended support and safety flow.",
+    text: "Send a message below and it lands directly with the Mentor Market team, or reach out by email or phone if you'd rather.",
     note: "For urgent safety concerns, use the report tools inside your account.",
     media: "/media/english-demo.mp4",
     poster: "/media/english-studio.svg",
     items: [["Email", "hello@mentormarket.test"], ["Phone", "+880 1700 000 000"], ["Office", "Dhaka, Bangladesh"]],
   },
 };
+
+function ContactForm() {
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+  const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const submit = async (event) => {
+    event.preventDefault();
+    setStatus("submitting");
+    setError("");
+    try {
+      await api.post("/contact", form);
+      setStatus("success");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (requestError) {
+      setStatus("error");
+      setError(getErrorMessage(requestError));
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div className="contact-form-success">
+        <CheckCircle2 size={26} />
+        <h3>Message sent</h3>
+        <p>Thanks for reaching out. We'll follow up at the email address you provided.</p>
+        <button type="button" className="button button-ghost" onClick={() => setStatus("idle")}>Send another message</button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="contact-form panel" onSubmit={submit}>
+      <span className="panel-eyebrow">Send a message</span>
+      <h2>We read every message</h2>
+      <Alert>{error}</Alert>
+      <FormField name="name" label="Your name" value={form.name} onChange={change} required />
+      <FormField name="email" label="Email address" type="email" value={form.email} onChange={change} required />
+      <FormField name="subject" label="Subject" value={form.subject} onChange={change} />
+      <FormField name="message" label="Message" as="textarea" value={form.message} onChange={change} required />
+      <button className="button button-block" disabled={status === "submitting"} aria-busy={status === "submitting" || undefined}>
+        {status === "submitting" ? "Sending…" : "Send message"}
+      </button>
+    </form>
+  );
+}
 
 export default function StaticPage({ page }) {
   const item = content[page];
@@ -52,7 +102,8 @@ export default function StaticPage({ page }) {
   return <main className={`information-page information-${page}`}>
     <section className="simple-hero"><div className="container simple-hero-grid"><div className="simple-hero-copy"><span className="page-index"><i /> {item.label}</span><h1>{item.title}</h1><p>{item.text}</p><div className="simple-hero-actions">{primaryAction}{!isContact && page !== "how-it-works" && <Link className="text-link" to="/how-it-works">See how it works</Link>}</div></div><div className="information-visual"><AmbientVideo src={item.media} poster={item.poster} label={`${item.label} preview`} /><span className="information-video-label"><i /> Mentor Market in motion</span><DemoVideo src={item.media} poster={item.poster} title={item.label} variant="icon" /><div><CirclePlay size={17} /><p>{item.note}</p></div></div></div></section>
     <section className="section container information-layout"><aside><span>What to know</span><p>Three useful details before you get started.</p><div><Sparkles size={16} /><small>Clear context creates better matches.</small></div></aside><div className="information-list">{item.items.map(([title, text], index) => <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><h2>{title}</h2><p>{isContact && title === "Email" ? <a href={`mailto:${text}`}>{text}</a> : isContact && title === "Phone" ? <a href={`tel:${text.replaceAll(" ", "")}`}>{text}</a> : text}</p>{isContact && index === 0 ? <Mail size={20} /> : isContact && index === 2 ? <MapPin size={20} /> : <ArrowRight size={20} />}</article>)}</div></section>
-    <section className="container information-principle"><ShieldCheck size={23} /><div><span>{isContact ? "Support principle" : "Marketplace principle"}</span><h2>{isContact ? "Make concerns easy to raise and clear to follow." : "Enough signal to choose. Enough structure to keep going."}</h2></div><p>{isContact ? "Messages, reports, and admin review are designed as simple database-backed workflows in this project." : "Mentor discovery is only the beginning. Bookings, messages, learning tools, and feedback carry the relationship forward."}</p></section>
+    {isContact && <section className="section container contact-form-section"><ContactForm /></section>}
+    <section className="container information-principle"><ShieldCheck size={23} /><div><span>{isContact ? "Support principle" : "Marketplace principle"}</span><h2>{isContact ? "Make concerns easy to raise and clear to follow." : "Enough signal to choose. Enough structure to keep going."}</h2></div><p>{isContact ? "Messages submitted here reach the Mentor Market team directly, alongside safety reports and admin review inside the app." : "Mentor discovery is only the beginning. Bookings, messages, learning tools, and feedback carry the relationship forward."}</p></section>
     <section className="container information-cta"><div><small>{isContact ? "We are here to help" : isTutor ? "Your experience belongs in view" : "Ready when you are"}</small><h2>{isContact ? "Tell us what you need." : isTutor ? "Show students how you teach." : "Find a mentor who feels right."}</h2><p>{isContact ? "Share the account, booking, or safety context and we will point you to the right next step." : isTutor ? "Create your mentor profile and publish your first teaching service." : "Create an account or explore teaching previews first."}</p></div>{isContact ? <a className="button" href="mailto:hello@mentormarket.test">Email support <ArrowRight size={15} /></a> : <Link className="button" to={isTutor ? "/register?role=tutor" : "/register"}>{isTutor ? "Become a mentor" : "Create an account"} <ArrowRight size={15} /></Link>}<Link className="text-link" to="/tutors">Browse mentors</Link></section>
   </main>;
 }

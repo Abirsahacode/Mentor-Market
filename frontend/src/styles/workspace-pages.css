@@ -708,6 +708,19 @@ blockquote p { font-size: var(--type-caption); }
 .quiz-result .button { margin-top: 10px; }
 .assignment-action-modal > p { margin: -3px 0 22px; font-size: var(--type-caption); }
 
+.curriculum-editor-page { display: flex; flex-direction: column; gap: 16px; }
+.curriculum-module-list { display: flex; flex-direction: column; gap: 12px; }
+.curriculum-module-card { display: flex; flex-direction: column; gap: 12px; }
+.curriculum-module-head { display: flex; align-items: flex-start; gap: 10px; }
+.curriculum-module-head svg { flex: 0 0 auto; margin-top: 4px; color: var(--muted); }
+.curriculum-module-head small { display: block; color: var(--muted); font-size: var(--type-micro); }
+.curriculum-module-head strong { display: block; font-size: 1rem; }
+.curriculum-module-head p { margin: 4px 0 0; color: var(--muted); font-size: var(--type-caption); }
+.curriculum-module-items { display: flex; margin: 0; padding-left: 20px; flex-direction: column; gap: 4px; font-size: var(--type-caption); }
+.curriculum-module-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.curriculum-editor-form { display: flex; flex-direction: column; gap: 12px; }
+.curriculum-add-panel .panel-heading h2 { display: flex; align-items: center; gap: 6px; }
+
 @media (max-width: 900px) {
   .dashboard-grid { grid-template-columns: 1fr; }
   .dashboard-today { grid-template-columns: 1fr; }

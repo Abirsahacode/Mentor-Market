@@ -34,6 +34,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { data: tutors, loading: tutorsLoading, error: tutorsError, reload: reloadTutors } = useApi("/tutors?limit=6");
   const { data: requests, loading: requestsLoading, error: requestsError, reload: reloadRequests } = useApi("/student-requests?status=open&limit=3");
+  const { data: featuredReviews, loading: reviewsLoading } = useApi("/reviews/featured");
   const submit = (event) => { event.preventDefault(); navigate(`/tutors${subject ? `?q=${encodeURIComponent(subject.trim())}` : ""}`); };
   const featuredTutors = (tutors || []).slice(0, 3);
   const leadTutor = featuredTutors[0];
@@ -134,6 +135,23 @@ export default function HomePage() {
         </div>
         <div className="home-request-list">{requestsError && !(requests || []).length ? <div className="home-section-error"><Alert>{requestsError}</Alert><button className="button button-ghost button-small" type="button" onClick={reloadRequests}>Retry open briefs</button></div> : requestsLoading ? [0, 1, 2].map((item) => <article className="listing-card-skeleton request-skeleton" key={item}><i /><span /><span /><b /></article>) : (requests || []).length ? (requests || []).map((request) => <RequestCard key={request.id} request={request} anonymizeStudent action={<Link className="request-card-link" to="/student-requests">View brief <ArrowRight size={14} /></Link>} />) : <p className="empty-inline">No student requests are open right now.</p>}</div>
       </section>
+
+      {(reviewsLoading || featuredReviews.length > 0) && (
+        <section className="container home-testimonials-section">
+          <div className="section-heading split"><div className="heading-lockup"><span className="section-number">05</span><div><p className="section-kicker">Real feedback</p><h2>What learners say.</h2></div></div></div>
+          <div className="card-grid testimonial-grid">
+            {reviewsLoading
+              ? [0, 1, 2].map((item) => <article className="listing-card-skeleton" key={item}><i /><span /><span /><b /></article>)
+              : featuredReviews.map((review) => (
+                <blockquote className="testimonial-card" key={review.id}>
+                  <span className="testimonial-rating">{"★".repeat(review.rating)}</span>
+                  <p>{review.comment}</p>
+                  <footer><UserAvatar name={review.reviewer_name} size="small" /><span><strong>{review.reviewer_name}</strong><small>on {review.receiver_name}'s teaching</small></span></footer>
+                </blockquote>
+              ))}
+          </div>
+        </section>
+      )}
 
       <section className="container home-final-cta">
         <span className="cta-mark"><BookOpen size={25} /></span>

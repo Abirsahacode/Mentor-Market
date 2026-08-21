@@ -15,6 +15,7 @@ const CreateListingPage = lazy(() => import("./pages/CreateListingPage.jsx"));
 const CourseDiscoveryPage = lazy(() => import("./pages/CourseDiscoveryPage.jsx"));
 const CourseDetailsPage = lazy(() => import("./pages/CourseDetailsPage.jsx"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage.jsx"));
+const ManageCurriculumPage = lazy(() => import("./pages/ManageCurriculumPage.jsx"));
 const MaterialsPage = lazy(() => import("./pages/MaterialsPage.jsx"));
 const MessagesPage = lazy(() => import("./pages/MessagesPage.jsx"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage.jsx"));
@@ -75,7 +76,8 @@ export default function App() {
     <Route path="tutor" element={<RoleShell role="tutor" />}>
       <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<DashboardPage />} />
       <Route path="profile" element={<ProfilePage role="tutor" />} /><Route path="create-service" element={<CreateListingPage type="service" />} />
-      <Route path="services" element={<MyListingsPage type="service" />} /><Route path="requests" element={<BrowseRequestsPage />} />
+      <Route path="services" element={<MyListingsPage type="service" />} /><Route path="services/:id/curriculum" element={<ManageCurriculumPage />} />
+      <Route path="requests" element={<BrowseRequestsPage />} />
       <Route path="applications" element={<ApplicationsPage />} /><Route path="bookings" element={<BookingsPage />} />
       <Route path="messages" element={<MessagesPage />} /><Route path="materials" element={<MaterialsPage />} />
       <Route path="assignments" element={<AssignmentsPage />} /><Route path="quizzes" element={<QuizzesPage />} />
@@ -86,7 +88,7 @@ export default function App() {
 
     <Route path="admin" element={<RoleShell role="admin" />}>
       <Route index element={<Navigate to="dashboard" replace />} /><Route path="dashboard" element={<DashboardPage />} />
-      {Object.keys({ users: 1, students: 1, tutors: 1, "tutor-posts": 1, "student-requests": 1, applications: 1, bookings: 1, payments: 1, reviews: 1, verifications: 1, reports: 1 }).map((type) => <Route key={type} path={type} element={<AdminResourcePage type={type} />} />)}
+      {Object.keys({ users: 1, students: 1, tutors: 1, "tutor-posts": 1, "student-requests": 1, applications: 1, bookings: 1, payments: 1, reviews: 1, verifications: 1, reports: 1, "moderation-logs": 1, "contact-messages": 1 }).map((type) => <Route key={type} path={type} element={<AdminResourcePage type={type} />} />)}
       <Route path="notifications" element={<NotificationsPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />

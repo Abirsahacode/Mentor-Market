@@ -34,6 +34,15 @@ export const getProgress = asyncHandler(async (req, res) => {
   const [feedback] = await db.query(
     "SELECT feedback, title FROM assignments WHERE student_id = ? AND feedback IS NOT NULL ORDER BY graded_at DESC LIMIT 5", [studentId],
   );
+  const [weakSubjects] = await db.query(
+    `SELECT qz.subject, ROUND(AVG(qa.score / qz.total_score * 100), 1) AS average_percentage
+     FROM quiz_attempts qa JOIN quizzes qz ON qz.id = qa.quiz_id
+     WHERE qa.student_id = ?
+     GROUP BY qz.subject
+     HAVING average_percentage < 60
+     ORDER BY average_percentage ASC
+     LIMIT 3`, [studentId],
+  );
   const averages = [assignments.average_marks, quizzes.average_quiz_score].filter((value) => value !== null);
   const averagePerformance = averages.length
     ? Math.round(averages.reduce((sum, value) => sum + Number(value), 0) / averages.length)
@@ -44,7 +53,7 @@ export const getProgress = asyncHandler(async (req, res) => {
     ...quizzes,
     average_performance: averagePerformance,
     tutor_feedback: feedback,
-    weak_topics: averagePerformance && averagePerformance < 60 ? ["Review recent quiz topics"] : ["No weak topics identified yet"],
+    weak_topics: weakSubjects.map((row) => `${row.subject} (${row.average_percentage}%)`),
   }, "Progress loaded");
 });
 

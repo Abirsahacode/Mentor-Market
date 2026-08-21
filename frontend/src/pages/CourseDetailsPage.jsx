@@ -103,6 +103,7 @@ export default function CourseDetailsPage() {
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [expandedModule, setExpandedModule] = useState(0);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bookingStatus, setBookingStatus] = useState({ type: "", message: "" });
@@ -170,6 +171,16 @@ export default function CourseDetailsPage() {
   const reviews = course?.reviews || tutor.reviews || [];
   const rating = Number(tutor.average_rating || course?.average_rating || 0);
   const blueprint = useMemo(() => findBlueprint(course?.subject), [course?.subject]);
+  const realModules = useMemo(() => (course?.modules || []).map((item) => {
+    let items = item.items;
+    if (typeof items === "string") { try { items = JSON.parse(items); } catch { items = []; } }
+    return { title: item.title, description: item.description || "", items: Array.isArray(items) ? items : [] };
+  }), [course?.modules]);
+  const usingRealModules = realModules.length > 0;
+  const displayModules = usingRealModules
+    ? realModules
+    : blueprint.modules.map(([title, description, items]) => ({ title, description, items }));
+  const relatedCourses = course?.related_posts || [];
   const classModes = course?.teaching_mode === "both" ? ["online", "offline"] : [course?.teaching_mode || "online"];
   const selectedDateSlots = availabilitySlots.filter((slot) => slot.date === booking.class_date);
   const availabilityIsResolved = Boolean(booking.class_date)
@@ -295,6 +306,7 @@ export default function CourseDetailsPage() {
       <a href="#course-outcomes">Outcomes</a>
       <a href="#learning-path">Learning path</a>
       <a href="#course-mentor">Mentor</a>
+      {relatedCourses.length > 0 && <a href="#course-related">Similar</a>}
       {reviews.length > 0 && <a href="#course-reviews">Reviews</a>}
     </nav>
 
@@ -341,19 +353,19 @@ export default function CourseDetailsPage() {
         </section>
 
         <section className="cx-section cx-curriculum" id="learning-path">
-          <div className="cx-section-heading cx-heading-row"><div><span>Suggested learning path</span><h2>From first principles to confident practice</h2></div><p>4 modules · adapted live by your mentor</p></div>
-          <div className="cx-module-list">{blueprint.modules.map(([title, description, lessons], index) => {
+          <div className="cx-section-heading cx-heading-row"><div><span>{usingRealModules ? "Learning path" : "Suggested learning path"}</span><h2>From first principles to confident practice</h2></div><p>{displayModules.length} modules · {usingRealModules ? "set by your mentor" : "adapted live by your mentor"}</p></div>
+          <div className="cx-module-list">{displayModules.map((module, index) => {
             const open = expandedModule === index;
-            return <article className={open ? "is-open" : ""} key={title}>
+            return <article className={open ? "is-open" : ""} key={`${module.title}-${index}`}>
               <button type="button" onClick={() => setExpandedModule(open ? -1 : index)} aria-expanded={open}>
                 <span className="cx-module-number">{String(index + 1).padStart(2, "0")}</span>
-                <span className="cx-module-copy"><small>Module {index + 1}</small><strong>{title}</strong><em>{description}</em></span>
+                <span className="cx-module-copy"><small>Module {index + 1}</small><strong>{module.title}</strong><em>{module.description}</em></span>
                 <span className="cx-module-toggle">{open ? <ChevronUp size={19} /> : <ChevronDown size={19} />}</span>
               </button>
-              {open && <div className="cx-lessons">{lessons.map((lesson, lessonIndex) => <div key={lesson}><span><Play size={12} fill="currentColor" /></span><p><small>Lesson {index + 1}.{lessonIndex + 1}</small><strong>{lesson}</strong></p><em>{lessonIndex ? "Practice" : "Guided"}</em></div>)}</div>}
+              {open && <div className="cx-lessons">{module.items.map((lesson, lessonIndex) => <div key={lesson}><span><Play size={12} fill="currentColor" /></span><p><small>Lesson {index + 1}.{lessonIndex + 1}</small><strong>{lesson}</strong></p><em>{lessonIndex ? "Practice" : "Guided"}</em></div>)}</div>}
             </article>;
           })}</div>
-          <p className="cx-curriculum-note"><Sparkles size={15} /> Your mentor may adjust this path after learning about your goals and starting point.</p>
+          <p className="cx-curriculum-note"><Sparkles size={15} /> {usingRealModules ? "This path was written by your mentor for this exact course." : "Your mentor may adjust this path after learning about your goals and starting point."}</p>
         </section>
 
         <section className="cx-section cx-mentor-card" id="course-mentor">
@@ -361,7 +373,28 @@ export default function CourseDetailsPage() {
           <div className="cx-mentor-copy"><span>Meet your mentor</span><h2>{tutorName} {tutor.is_verified ? <BadgeCheck size={20} /> : null}</h2><p>{tutor.bio || course.tutor_bio || `${tutorName} teaches ${course.subject} through clear explanations, active practice, and specific feedback.`}</p><div className="cx-mentor-stats"><span><Award size={17} /><strong>{tutor.experience_years || course.experience_years || "Experienced"}</strong><small>{Number(tutor.experience_years || course.experience_years) ? "years teaching" : "mentor"}</small></span><span><Star size={17} /><strong>{rating ? rating.toFixed(1) : "New"}</strong><small>mentor rating</small></span><span><MapPin size={17} /><strong>{tutor.location || course.location || "Online"}</strong><small>based in</small></span></div><div className="cx-mentor-links"><Link to={`/tutors/${course.tutor_id || tutor.id}`}>View full profile</Link>{user?.role === "student" && <Link to={`/student/messages?recipient=${course.tutor_id || tutor.id}&name=${encodeURIComponent(tutorName)}`}><MessageCircle size={15} /> Start a conversation</Link>}</div></div>
         </section>
 
-        {reviews.length > 0 && <section className="cx-section cx-reviews" id="course-reviews"><div className="cx-section-heading cx-heading-row"><div><span>Student voices</span><h2>How learning with {tutorName.split(" ")[0]} feels</h2></div><div className="cx-review-score"><Star size={18} fill="currentColor" /><strong>{rating.toFixed(1)}</strong></div></div><div className="cx-review-grid">{reviews.slice(0, 3).map((review, index) => { const reviewerName = review.reviewer_name || review.reviewer?.full_name || "Verified student"; return <blockquote key={review.id || index}><span>{"★".repeat(Number(review.rating || 5))}</span><p>“{review.comment || "A focused, encouraging learning experience."}”</p><footer><div>{initials(reviewerName)}</div><strong>{reviewerName}</strong></footer></blockquote>; })}</div></section>}
+        {relatedCourses.length > 0 && (
+          <section className="cx-section cx-related" id="course-related">
+            <div className="cx-section-heading"><span>Compare and choose</span><h2>More {course.subject} courses</h2></div>
+            <div className="cx-related-grid">
+              {relatedCourses.map((related) => (
+                <Link className="cx-related-card" to={`/student/courses/${related.id}`} key={related.id}>
+                  <div className="cx-related-media">
+                    {related.thumbnail_url ? <img src={related.thumbnail_url} alt="" /> : <CourseArtwork subject={related.subject} />}
+                  </div>
+                  <div className="cx-related-copy">
+                    <small>{related.subject} · {related.level}</small>
+                    <strong>{related.title}</strong>
+                    <span>{related.tutor_name} {related.is_verified ? <BadgeCheck size={13} /> : null}</span>
+                    <div><span><Star size={13} fill="currentColor" /> {Number(related.average_rating || 0).toFixed(1)}</span><b>৳{Number(related.price || 0).toLocaleString()}</b></div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {reviews.length > 0 && <section className="cx-section cx-reviews" id="course-reviews"><div className="cx-section-heading cx-heading-row"><div><span>Student voices</span><h2>How learning with {tutorName.split(" ")[0]} feels</h2></div><div className="cx-review-score"><Star size={18} fill="currentColor" /><strong>{rating.toFixed(1)}</strong></div></div><div className="cx-review-grid">{(showAllReviews ? reviews : reviews.slice(0, 3)).map((review, index) => { const reviewerName = review.reviewer_name || review.reviewer?.full_name || "Verified student"; return <blockquote key={review.id || index}><span>{"★".repeat(Number(review.rating || 5))}</span><p>“{review.comment || "A focused, encouraging learning experience."}”</p><footer><div>{initials(reviewerName)}</div><strong>{reviewerName}</strong></footer></blockquote>; })}</div>{!showAllReviews && reviews.length > 3 && <button type="button" className="cx-button cx-button-soft cx-reviews-more" onClick={() => setShowAllReviews(true)}>Show all {reviews.length} reviews</button>}</section>}
       </div>
 
       <aside className="cx-booking-column" id="course-booking">

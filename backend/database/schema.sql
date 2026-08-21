@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS mentor_market CHARACTER SET utf8mb4 COLLATE utf8mb
 USE mentor_market;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS referral_rewards, course_views, saved_courses, saved_tutors, withdrawal_requests, reports, notifications, study_materials,
+DROP TABLE IF EXISTS contact_messages, course_modules, moderation_logs, referral_rewards, course_views, saved_courses, saved_tutors, withdrawal_requests, reports, notifications, study_materials,
   quiz_attempts, quizzes, assignments, payments, verifications, reviews, messages, reschedule_requests, booking_waitlists, bookings,
   applications, student_requests, tutor_posts, tutor_availabilities, tutor_profiles, student_profiles, users;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -89,7 +89,7 @@ CREATE TABLE tutor_posts (
   thumbnail_url VARCHAR(500),
   demo_video_url VARCHAR(500),
   description TEXT NOT NULL,
-  status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  status ENUM('draft', 'active', 'inactive') NOT NULL DEFAULT 'active',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_tutor_posts_users FOREIGN KEY (tutor_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -417,4 +417,41 @@ CREATE TABLE referral_rewards (
   CONSTRAINT fk_referral_rewards_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT uq_user_badge UNIQUE (user_id, badge_key),
   INDEX idx_referral_rewards_user (user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE moderation_logs (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_id BIGINT UNSIGNED NOT NULL,
+  action VARCHAR(60) NOT NULL,
+  target_type VARCHAR(60) NOT NULL,
+  target_id BIGINT UNSIGNED NOT NULL,
+  reason TEXT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_moderation_logs_admins FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_moderation_logs_target (target_type, target_id),
+  INDEX idx_moderation_logs_created (created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE course_modules (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tutor_post_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(160) NOT NULL,
+  description TEXT,
+  items JSON,
+  position SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_course_modules_posts FOREIGN KEY (tutor_post_id) REFERENCES tutor_posts(id) ON DELETE CASCADE,
+  INDEX idx_course_modules_post_position (tutor_post_id, position)
+) ENGINE=InnoDB;
+
+CREATE TABLE contact_messages (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(191) NOT NULL,
+  subject VARCHAR(160),
+  message TEXT NOT NULL,
+  status ENUM('open', 'resolved') NOT NULL DEFAULT 'open',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_contact_messages_status_created (status, created_at)
 ) ENGINE=InnoDB;
