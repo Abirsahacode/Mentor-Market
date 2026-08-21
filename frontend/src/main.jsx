@@ -15,6 +15,7 @@ import "./styles/discovery-plus.css";
 import "./styles/course-experience.css";
 import "./styles/live-class.css";
 import "./styles/component-polish.css";
+import "./styles/referral-system.css";
 import App from "./App.jsx";
 import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";

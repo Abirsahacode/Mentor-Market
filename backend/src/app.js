@@ -14,6 +14,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import quizRoutes from "./routes/quizRoutes.js";
+import referralRoutes from "./routes/referralRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
@@ -49,6 +50,7 @@ if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
 
 app.get("/api/health", (_req, res) => res.json({ success: true, message: "Mentor Market API is running", data: { version: "1.0.0" } }));
 app.use("/api/auth", authRoutes);
+app.use("/api/referrals", referralRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/tutors", tutorRoutes);

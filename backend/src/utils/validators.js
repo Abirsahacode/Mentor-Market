@@ -6,6 +6,7 @@ export const registerRules = [
   body("email").isEmail().normalizeEmail().withMessage("must be a valid email address"),
   body("password").isLength({ min: 8 }).withMessage("must contain at least 8 characters"),
   body("role").isIn(["student", "tutor"]).withMessage("must be student or tutor"),
+  body("referral_code").optional({ checkFalsy: true }).trim().isLength({ min: 3, max: 30 }).withMessage("must be 3-30 characters"),
 ];
 
 export const loginRules = [

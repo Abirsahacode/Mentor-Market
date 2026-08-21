@@ -3,15 +3,18 @@ USE mentor_market;
 -- Every seeded account uses the password: Password123!
 SET @password_hash = '$2b$12$05TEok9Dzq6jfFIgfmwBZedqqfpUxDrw2l0VLuWvwvXCZ5pyBj0S6';
 
-INSERT INTO users (id, full_name, email, password_hash, role, phone, avatar_url, is_active) VALUES
-  (1, 'Mentor Market Admin', 'admin@mentormarket.test', @password_hash, 'admin', '+8801700000001', NULL, TRUE),
-  (2, 'Ayesha Rahman', 'ayesha@mentormarket.test', @password_hash, 'student', '+8801700000002', NULL, TRUE),
-  (3, 'Rafi Hasan', 'rafi@mentormarket.test', @password_hash, 'student', '+8801700000003', NULL, TRUE),
-  (4, 'Nusrat Jahan', 'nusrat@mentormarket.test', @password_hash, 'student', '+8801700000004', NULL, TRUE),
-  (5, 'Farhan Ahmed', 'farhan@mentormarket.test', @password_hash, 'tutor', '+8801700000005', '/media/tutor-farhan.webp', TRUE),
-  (6, 'Mehjabin Chowdhury', 'mehjabin@mentormarket.test', @password_hash, 'tutor', '+8801700000006', '/media/tutor-mehjabin.webp', TRUE),
-  (7, 'Tanvir Hossain', 'tanvir@mentormarket.test', @password_hash, 'tutor', '+8801700000007', '/media/tutor-tanvir.webp', TRUE),
-  (8, 'Sadia Islam', 'sadia@mentormarket.test', @password_hash, 'tutor', '+8801700000008', '/media/tutor-sadia.webp', TRUE);
+INSERT INTO users (id, full_name, email, password_hash, role, phone, avatar_url, referral_code, referred_by_id, is_active) VALUES
+  (1, 'Mentor Market Admin', 'admin@mentormarket.test', @password_hash, 'admin', '+8801700000001', NULL, 'REF-ADMIN1', NULL, TRUE),
+  (2, 'Ayesha Rahman', 'ayesha@mentormarket.test', @password_hash, 'student', '+8801700000002', NULL, 'REF-AYESHA7X', NULL, TRUE),
+  (3, 'Rafi Hasan', 'rafi@mentormarket.test', @password_hash, 'student', '+8801700000003', NULL, 'REF-RAFI3A', 2, TRUE),
+  (4, 'Nusrat Jahan', 'nusrat@mentormarket.test', @password_hash, 'student', '+8801700000004', NULL, 'REF-NUSRAT9B', NULL, TRUE),
+  (5, 'Farhan Ahmed', 'farhan@mentormarket.test', @password_hash, 'tutor', '+8801700000005', '/media/tutor-farhan.webp', 'REF-FARHAN5', NULL, TRUE),
+  (6, 'Mehjabin Chowdhury', 'mehjabin@mentormarket.test', @password_hash, 'tutor', '+8801700000006', '/media/tutor-mehjabin.webp', 'REF-MEHJABIN6', NULL, TRUE),
+  (7, 'Tanvir Hossain', 'tanvir@mentormarket.test', @password_hash, 'tutor', '+8801700000007', '/media/tutor-tanvir.webp', 'REF-TANVIR7', NULL, TRUE),
+  (8, 'Sadia Islam', 'sadia@mentormarket.test', @password_hash, 'tutor', '+8801700000008', '/media/tutor-sadia.webp', 'REF-SADIA8', NULL, TRUE);
+
+INSERT INTO referral_rewards (user_id, badge_key, badge_name, reward_description) VALUES
+  (2, 'starter_ambassador', 'Starter Ambassador', '5% Fee Discount');
 
 INSERT INTO student_profiles (user_id, class_level, institution, location, subjects, learning_goals, bio) VALUES
   (2, 'Class 10', 'Viqarunnisa Noon School', 'Dhanmondi, Dhaka', JSON_ARRAY('Mathematics', 'Physics'), 'Prepare confidently for SSC exams.', 'Curious science student who learns best with examples.'),

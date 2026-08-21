@@ -14,6 +14,7 @@ import useApi from "../hooks/useApi.js";
 import useAuth from "../hooks/useAuth.js";
 import TutorAvailabilityManager from "../components/TutorAvailabilityManager.jsx";
 import MentorWaitlistManager from "../components/MentorWaitlistManager.jsx";
+import StudentReferralManager from "../components/StudentReferralManager.jsx";
 import { firstDisplayName } from "../utils/formatters.js";
 import { isLiveClassUrl } from "../utils/liveClass.js";
 
@@ -327,6 +328,12 @@ function UserDashboard({ role, displayName }) {
           <Link to={`/${role}/${isStudent ? "assignments" : "materials"}`}><BookOpenCheck size={17} /><span><strong>{isStudent ? "Assignments" : "Study materials"}</strong><small>{isStudent ? "View due work" : "Share a resource"}</small></span><ArrowRight size={15} /></Link>
         </article>
       </div>
+
+      {role === "student" && (
+        <div style={{ marginTop: "2rem" }}>
+          <StudentReferralManager />
+        </div>
+      )}
 
       {role === "tutor" && (
         <div style={{ marginTop: "2rem", display: "flex", flexDirection: "column", gap: "2rem" }}>

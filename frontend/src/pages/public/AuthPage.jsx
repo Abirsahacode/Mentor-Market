@@ -25,7 +25,14 @@ const validationErrors = (requestError) => {
 export default function AuthPage({ mode }) {
   const [searchParams] = useSearchParams();
   const requestedRole = searchParams.get("role");
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: ["student", "tutor"].includes(requestedRole) ? requestedRole : "student" });
+  const initialRef = searchParams.get("ref") || "";
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    password: "",
+    role: ["student", "tutor"].includes(requestedRole) ? requestedRole : "student",
+    referral_code: initialRef,
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
@@ -57,7 +64,8 @@ export default function AuthPage({ mode }) {
       const nextFieldErrors = validationErrors(requestError);
       const errorCode = requestError.response?.data?.error?.code;
       if (errorCode === "email_in_use") nextFieldErrors.email = getErrorMessage(requestError);
-      const allowedFields = new Set(isLogin ? ["email", "password"] : ["full_name", "email", "password"]);
+      if (errorCode === "invalid_referral_code") nextFieldErrors.referral_code = getErrorMessage(requestError);
+      const allowedFields = new Set(isLogin ? ["email", "password"] : ["full_name", "email", "password", "referral_code"]);
       const visibleFieldErrors = Object.fromEntries(Object.entries(nextFieldErrors).filter(([field]) => allowedFields.has(field)));
       setFieldErrors(visibleFieldErrors);
       const hasUnhandledError = !Object.keys(visibleFieldErrors).length
@@ -98,6 +106,7 @@ export default function AuthPage({ mode }) {
           <div className="password-field"><FormField label="Password" name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={change} required placeholder={isLogin ? "Enter your password" : "At least 8 characters"} autoComplete={isLogin ? "current-password" : "new-password"} error={fieldErrors.password} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
           {!isLogin && form.password && <div className="password-strength" aria-live="polite"><div aria-hidden="true">{[0, 1, 2, 3].map((step) => <i className={step < passwordScore ? "active" : ""} key={step} />)}</div><span>{passwordScore < 2 ? "Keep going" : passwordScore < 4 ? "Good password" : "Strong password"}</span><small>Use 8+ characters with a number and symbol.</small></div>}
           {!isLogin && <fieldset className="role-selector"><legend>I am joining as</legend><div><label className={form.role === "student" ? "selected" : ""}><input type="radio" name="role" value="student" checked={form.role === "student"} onChange={change} /><BookOpen size={20} /><span><b>Student</b><small>Find a mentor and manage learning</small></span><Check size={15} /></label><label className={form.role === "tutor" ? "selected" : ""}><input type="radio" name="role" value="tutor" checked={form.role === "tutor"} onChange={change} /><GraduationCap size={20} /><span><b>Mentor</b><small>Teach, connect, and organize classes</small></span><Check size={15} /></label></div></fieldset>}
+          {!isLogin && form.role === "student" && <FormField label="Referral code (optional)" name="referral_code" value={form.referral_code} onChange={change} placeholder="e.g. REF-AYESHA7X" error={fieldErrors.referral_code} hint="Have a code from a friend? Enter it to get started." />}
           {isLogin && <div className="auth-options"><span><Sparkles size={14} /> Your role opens the right workspace automatically.</span><Link to="/contact">Need help?</Link></div>}
           <button className="button button-block auth-submit" disabled={submitting}>{submitting ? "Opening your workspace…" : isLogin ? <>Log in <ArrowRight size={17} /></> : <>Create account <ArrowRight size={17} /></>}</button>
           <div className="auth-switch">{isLogin ? "New to Mentor Market?" : "Already have an account?"} <Link to={isLogin ? "/register" : "/login"} state={location.state}>{isLogin ? "Create an account" : "Log in"}</Link></div>

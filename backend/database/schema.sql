@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS mentor_market CHARACTER SET utf8mb4 COLLATE utf8mb
 USE mentor_market;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS course_views, saved_courses, saved_tutors, withdrawal_requests, reports, notifications, study_materials,
+DROP TABLE IF EXISTS referral_rewards, course_views, saved_courses, saved_tutors, withdrawal_requests, reports, notifications, study_materials,
   quiz_attempts, quizzes, assignments, payments, verifications, reviews, messages, reschedule_requests, booking_waitlists, bookings,
   applications, student_requests, tutor_posts, tutor_availabilities, tutor_profiles, student_profiles, users;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -15,12 +15,16 @@ CREATE TABLE users (
   role ENUM('student', 'tutor', 'admin') NOT NULL,
   phone VARCHAR(30),
   avatar_url VARCHAR(500),
+  referral_code VARCHAR(30) UNIQUE,
+  referred_by_id BIGINT UNSIGNED NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   last_login_at DATETIME,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT uq_users_email UNIQUE (email),
-  INDEX idx_users_role_active (role, is_active)
+  CONSTRAINT fk_users_referred_by FOREIGN KEY (referred_by_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_users_role_active (role, is_active),
+  INDEX idx_users_referral_code (referral_code)
 ) ENGINE=InnoDB;
 
 CREATE TABLE student_profiles (
@@ -401,4 +405,16 @@ CREATE TABLE course_views (
   CONSTRAINT fk_course_views_courses FOREIGN KEY (course_id) REFERENCES tutor_posts(id) ON DELETE CASCADE,
   INDEX idx_course_views_student_recent (student_id, last_viewed_at),
   INDEX idx_course_views_course (course_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE referral_rewards (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  badge_key VARCHAR(50) NOT NULL,
+  badge_name VARCHAR(100) NOT NULL,
+  reward_description VARCHAR(255) NOT NULL,
+  unlocked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_referral_rewards_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT uq_user_badge UNIQUE (user_id, badge_key),
+  INDEX idx_referral_rewards_user (user_id)
 ) ENGINE=InnoDB;
