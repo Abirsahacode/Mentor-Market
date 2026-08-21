@@ -1,5 +1,6 @@
 import db from "../config/db.js";
 import Booking from "../models/Booking.js";
+import { processWaitlistOnSlotFreed } from "../models/BookingWaitlist.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { notify } from "../utils/notifications.js";
@@ -354,6 +355,11 @@ export const updateBooking = asyncHandler(async (req, res) => {
     throw new ApiError(422, "no_booking_changes", "Add a status, schedule, or class access update");
   }
   const updated = await Booking.update(booking.id, allowedBody);
+
+  if (nextStatus === "cancelled" || hasScheduleChange) {
+    await processWaitlistOnSlotFreed(booking.tutor_id, booking.class_date, booking.class_time);
+  }
+
   const recipients = req.user.role === "admin"
     ? [booking.student_id, booking.tutor_id]
     : [req.user.id === booking.student_id ? booking.tutor_id : booking.student_id];

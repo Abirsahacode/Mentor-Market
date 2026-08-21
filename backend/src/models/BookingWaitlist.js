@@ -1,5 +1,6 @@
 import { model } from "./modelFactory.js";
 import db from "../config/db.js";
+import { notify } from "../utils/notifications.js";
 
 const BookingWaitlist = model("booking_waitlists", [
   "student_id", "tutor_id", "class_date", "class_time", "status",
@@ -43,6 +44,40 @@ export const findByStudentAndSlot = async (studentId, tutorId, classDate, classT
     [studentId, tutorId, classDate, classTime],
   );
   return entry || null;
+};
+
+export const processWaitlistOnSlotFreed = async (tutorId, classDate, classTime, connection = null) => {
+  const queryExecutor = connection || db;
+  const normalizedDate = typeof classDate === "string" ? classDate.slice(0, 10) : classDate;
+  const normalizedTime = typeof classTime === "string" ? classTime.slice(0, 5) : classTime;
+
+  const [[nextWaitlisted]] = await queryExecutor.query(
+    `SELECT w.*, student.full_name AS student_name, tutor.full_name AS tutor_name
+     FROM booking_waitlists w
+     JOIN users student ON student.id = w.student_id
+     JOIN users tutor ON tutor.id = w.tutor_id
+     WHERE w.tutor_id = ? AND w.class_date = ? AND DATE_FORMAT(w.class_time, '%H:%i') = ?
+       AND w.status = 'waiting'
+     ORDER BY w.created_at ASC
+     LIMIT 1`,
+    [tutorId, normalizedDate, normalizedTime],
+  );
+
+  if (nextWaitlisted) {
+    await queryExecutor.query(
+      "UPDATE booking_waitlists SET status = 'notified' WHERE id = ?",
+      [nextWaitlisted.id],
+    );
+
+    await notify(
+      nextWaitlisted.student_id,
+      "🎉 Slot Available!",
+      `A previously booked slot with ${nextWaitlisted.tutor_name} on ${normalizedDate} at ${normalizedTime} has opened up! You are first on the waitlist.`,
+      "waitlist_offered",
+    );
+    return nextWaitlisted;
+  }
+  return null;
 };
 
 export default BookingWaitlist;

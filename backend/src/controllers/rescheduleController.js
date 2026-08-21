@@ -1,6 +1,7 @@
 import db from "../config/db.js";
 import Booking from "../models/Booking.js";
 import RescheduleRequest, { findByBookingId, findPendingByBookingId, findPendingForUser } from "../models/RescheduleRequest.js";
+import { processWaitlistOnSlotFreed } from "../models/BookingWaitlist.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { normalizeDateOnly } from "../utils/availabilityCalendar.js";
@@ -83,12 +84,17 @@ export const respondRescheduleRequest = asyncHandler(async (req, res) => {
     throw new ApiError(422, "invalid_status", "Status must be 'accepted' or 'rejected'");
   }
 
+  const booking = await Booking.findById(reschedule.booking_id);
+  if (!booking) throw new ApiError(404, "booking_not_found", "Associated booking was not found");
+
   const connection = await db.getConnection();
   let updatedReschedule;
   try {
     await connection.beginTransaction();
 
     if (status === "accepted") {
+      const oldDate = normalizeDateOnly(booking.class_date);
+      const oldTime = String(booking.class_time).slice(0, 5);
       const newDateStr = normalizeDateOnly(reschedule.new_date);
       const newTimeStr = String(reschedule.new_time).slice(0, 5);
 
@@ -99,6 +105,9 @@ export const respondRescheduleRequest = asyncHandler(async (req, res) => {
          WHERE id = ?`,
         [newDateStr, newTimeStr, reschedule.booking_id],
       );
+
+      // Offer the freed original slot to the next waitlisted student
+      await processWaitlistOnSlotFreed(booking.tutor_id, oldDate, oldTime, connection);
     }
 
     await connection.query(
